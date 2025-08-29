@@ -34,13 +34,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.tatanstudios.astropollococina.R
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -98,9 +96,9 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
     var idonesignal by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        scope.launch {
+
             idonesignal = getOneSignalUserId()
-        }
+
     }
 
     Box(
@@ -303,10 +301,6 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
             }
         }
     }
-
-
-
-
 }
 
 

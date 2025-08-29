@@ -70,10 +70,10 @@ fun HistorialOrdenScreen(navController: NavHostController,
 
 
     LaunchedEffect(Unit) {
-        scope.launch {
+
             _idusuario = tokenManager.idUsuario.first()
             viewModel.historialListadonRetrofit(_idusuario, _fecha1, _fecha2)
-        }
+
     }
 
     // ocultar teclado

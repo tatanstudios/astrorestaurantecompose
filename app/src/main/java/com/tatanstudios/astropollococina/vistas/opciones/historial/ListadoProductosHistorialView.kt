@@ -63,10 +63,10 @@ fun ListadoProductosHistorialScreen(navController: NavHostController, _idorden: 
 
     // Lanzar la solicitud cuando se carga la pantalla
     LaunchedEffect(Unit) {
-        scope.launch {
+
             idusuario = tokenManager.idUsuario.first()
             viewModelProductosListaHistorial.listaProductosHistorialRetrofit(idorden = _idorden)
-        }
+
     }
 
     Scaffold(

@@ -66,7 +66,6 @@ fun ListadoPreparacionOrdenScreen(navController: NavHostController,
     val isLoading by viewModel.isLoading.observeAsState(true)
     val tokenManager = remember { TokenManager(ctx) }
     val resultado by viewModel.resultado.observeAsState()
-    val scope = rememberCoroutineScope() // Crea el alcance de coroutine
     val keyboardController = LocalSoftwareKeyboardController.current
     var _idusuario by remember { mutableStateOf("") }
 
@@ -81,15 +80,12 @@ fun ListadoPreparacionOrdenScreen(navController: NavHostController,
     )
 
     LaunchedEffect(Unit) {
-        scope.launch {
-            _idusuario = tokenManager.idUsuario.first()
-            viewModel.prepracionOrdenRetrofit(_idusuario)
-        }
+        _idusuario = tokenManager.idUsuario.first()
+        viewModel.prepracionOrdenRetrofit(_idusuario)
     }
 
     // ocultar teclado
     keyboardController?.hide()
-
 
     Scaffold(
         topBar = {

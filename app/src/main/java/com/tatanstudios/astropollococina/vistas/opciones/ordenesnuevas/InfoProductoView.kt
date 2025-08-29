@@ -19,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -46,20 +46,15 @@ import com.tatanstudios.astropollococina.componentes.LoadingModal
 import com.tatanstudios.astropollococina.componentes.ToastType
 import com.tatanstudios.astropollococina.network.RetrofitBuilder
 import com.tatanstudios.astropollococina.viewmodel.InfoProductoViewModel
-import kotlinx.coroutines.launch
-
 
 @Composable
 fun InfoProductoScreen(navController: NavHostController, _idproducto: Int,
                        viewModel: InfoProductoViewModel = viewModel(),
 ) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var imagenProducto by remember { mutableStateOf("") }
     var boolDatosCargados by remember { mutableStateOf(false) }
     val isLoading by viewModel.isLoading.observeAsState(initial = false)
     val resultado by viewModel.resultado.observeAsState()
-
 
     var _titulo by remember { mutableStateOf("") }
     var _descripcion by remember { mutableStateOf("") }
@@ -67,15 +62,12 @@ fun InfoProductoScreen(navController: NavHostController, _idproducto: Int,
     var _unidades by remember { mutableStateOf("") }
     var _total by remember { mutableStateOf("") }
     var _notas by remember { mutableStateOf("") }
+    var _imagen by remember { mutableStateOf("") }
     var boolUsaImagen by remember { mutableStateOf(false) }
 
-
     LaunchedEffect(Unit) {
-        scope.launch {
-            viewModel.infoProductoRetrofit(idproducto = _idproducto)
-        }
+        viewModel.infoProductoRetrofit(idproducto = _idproducto)
     }
-
 
     Scaffold(
         topBar = {
@@ -109,22 +101,24 @@ fun InfoProductoScreen(navController: NavHostController, _idproducto: Int,
                         ) {
 
                             if(boolUsaImagen){
+
+                                val imagenUrl = "${RetrofitBuilder.urlImagenes}${_imagen}"
+
                                 AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data("${RetrofitBuilder.urlImagenes}${imagenProducto}")
+                                    model = ImageRequest.Builder(ctx)
+                                        .data(imagenUrl)
                                         .crossfade(true)
-                                        .placeholder(R.drawable.camaradefecto)
-                                        .error(R.drawable.camaradefecto)
                                         .build(),
-                                    contentDescription = stringResource(R.string.imagen_por_defecto),
-                                    contentScale = ContentScale.Crop,
+                                    contentDescription = "imagen",
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(150.dp)
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .height(180.dp),
+                                    contentScale = ContentScale.Fit,
+                                    placeholder = painterResource(R.drawable.spinloading),
+                                    error = painterResource(R.drawable.camaradefecto)
                                 )
-                            }
 
+                            }
 
                             Spacer(modifier = Modifier.height(15.dp))
 
@@ -213,12 +207,8 @@ fun InfoProductoScreen(navController: NavHostController, _idproducto: Int,
                         }
                     }
                 }
-
-
             }
         }
-
-
 
         // INPUT TEXT NOTA CANCELAMIENTO
 
@@ -233,12 +223,12 @@ fun InfoProductoScreen(navController: NavHostController, _idproducto: Int,
                         _unidades = item.cantidad.toString()
                         _total = item.multiplicado?: ""
                         _notas = item.nota?: ""
+                        _imagen = item.imagen ?: ""
 
                         if(item.utilizaImagen == 1){
                             boolUsaImagen = true
                         }
                     }
-
 
                     boolDatosCargados = true
 
@@ -254,16 +244,10 @@ fun InfoProductoScreen(navController: NavHostController, _idproducto: Int,
             }
         }
 
-
         if (isLoading) {
             LoadingModal(isLoading = true)
         }
 
     } // end-scalfold
-
-
-
-
-
 
 }

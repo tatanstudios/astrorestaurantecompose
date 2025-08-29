@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.navOptions
-import com.onesignal.OneSignal
 import com.tatanstudios.astropollococina.R
 import com.tatanstudios.astropollococina.componentes.CustomModalCerrarSesion
 import com.tatanstudios.astropollococina.componentes.DrawerBody
@@ -106,12 +105,12 @@ fun PrincipalScreen(
     )
 
     LaunchedEffect(Unit) {
-        scope.launch {
+
             _idusuario = tokenManager.idUsuario.first()
             _idonesignal = getOneSignalUserId()
 
             viewModel.nuevasOrdenesRetrofit(_idusuario, _idonesignal)
-        }
+
     }
 
     // ocultar teclado
@@ -389,15 +388,8 @@ fun PrincipalScreen(
                 }
             }
         }
-
-
-
-
-
     }
 }
-
-
 
 
 fun getVersionName(context: Context): String {

@@ -50,7 +50,6 @@ fun ListadoProductosCategoriasScreen(navController: NavHostController, _idcatego
     // listado de productos
     val isLoadingProductos by viewModelProductosCategorias.isLoading.observeAsState(initial = false)
     val resultadoProductos by viewModelProductosCategorias.resultado.observeAsState()
-    var boolDatosCargados by remember { mutableStateOf(false) }
 
     var modeloListaProductosCategoriasArray by remember { mutableStateOf(listOf<ModeloListaProductoCategoriasArray>()) }
 
@@ -71,10 +70,10 @@ fun ListadoProductosCategoriasScreen(navController: NavHostController, _idcatego
 
     // Lanzar la solicitud cuando se carga la pantalla
     LaunchedEffect(Unit) {
-        scope.launch {
+
             idusuario = tokenManager.idUsuario.first()
             viewModelProductosCategorias.listaProductosCategoriasRetrofit(idcategoria = _idcategoria)
-        }
+
     }
 
     Scaffold(
@@ -148,7 +147,6 @@ fun ListadoProductosCategoriasScreen(navController: NavHostController, _idcatego
             1 -> {
                 // LISTADO DE PRODUCTOS
                 modeloListaProductosCategoriasArray = result.lista
-                boolDatosCargados = true
 
             }
             else -> {

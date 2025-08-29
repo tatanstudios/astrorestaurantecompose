@@ -81,10 +81,10 @@ fun ListadoCanceladasOrdenScreen(navController: NavHostController,
     )
 
     LaunchedEffect(Unit) {
-        scope.launch {
+
             _idusuario = tokenManager.idUsuario.first()
             viewModel.canceladasOrdenRetrofit(_idusuario)
-        }
+
     }
 
     // ocultar teclado

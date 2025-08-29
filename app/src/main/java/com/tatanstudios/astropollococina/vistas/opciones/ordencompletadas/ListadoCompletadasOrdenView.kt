@@ -73,6 +73,7 @@ fun ListadoCompletadasOrdenScreen(navController: NavHostController,
     var modeloListaOrdenesCompletadasArray by remember { mutableStateOf(listOf<ModeloOrdenesCompletadasArray>()) }
 
     val refreshing by remember { mutableStateOf(false) }
+
     val pullRefreshState = rememberPullRefreshState(
         refreshing = refreshing,
         onRefresh = {
@@ -81,10 +82,8 @@ fun ListadoCompletadasOrdenScreen(navController: NavHostController,
     )
 
     LaunchedEffect(Unit) {
-        scope.launch {
-            _idusuario = tokenManager.idUsuario.first()
-            viewModel.completadasOrdenRetrofit(_idusuario)
-        }
+        _idusuario = tokenManager.idUsuario.first()
+        viewModel.completadasOrdenRetrofit(_idusuario)
     }
 
     // ocultar teclado

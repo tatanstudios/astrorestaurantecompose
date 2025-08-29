@@ -108,10 +108,10 @@ fun ListadoCategoriasScreen(navController: NavHostController,
     )
 
     LaunchedEffect(Unit) {
-        scope.launch {
+
             _idusuario = tokenManager.idUsuario.first()
             viewModel.categoriasRetrofit(_idusuario)
-        }
+
     }
 
     // ocultar teclado

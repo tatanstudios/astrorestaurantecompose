@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,14 +48,12 @@ import com.tatanstudios.astropollococina.componentes.CustomToasty
 import com.tatanstudios.astropollococina.componentes.LoadingModal
 import com.tatanstudios.astropollococina.componentes.ProductoItemCard
 import com.tatanstudios.astropollococina.componentes.ToastType
-import com.tatanstudios.astropollococina.extras.TokenManager
 import com.tatanstudios.astropollococina.model.ordenes.ModeloProductoOrdenesArray
 import com.tatanstudios.astropollococina.model.rutas.Routes
 import com.tatanstudios.astropollococina.network.RetrofitBuilder
 import com.tatanstudios.astropollococina.viewmodel.CancelarOrdenViewModel
 import com.tatanstudios.astropollococina.viewmodel.FinalizarOrdenViewModel
 import com.tatanstudios.astropollococina.viewmodel.ProductosOrdenViewModel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
@@ -81,20 +80,13 @@ fun EstadoPreparacionOrdenScreen(navController: NavHostController, _idorden: Int
     var showDialogFinalizarOrden by remember { mutableStateOf(false) }
     var showDialogOrdenFinalizadaApi by remember { mutableStateOf(false) }
 
-
     // titulo y mensaje de respuestas
     var textoTituloApi by remember { mutableStateOf("") }
     var textoMensajeApi by remember { mutableStateOf("") }
 
-
     var modeloListaProductosArray by remember { mutableStateOf(listOf<ModeloProductoOrdenesArray>()) }
 
-
-    val tokenManager = remember { TokenManager(ctx) }
-    var idusuario by remember { mutableStateOf("") }
-
     val coroutineScope = rememberCoroutineScope()
-    //val keyboardController = LocalSoftwareKeyboardController.current
 
     var showDialogCancelamiento by remember { mutableStateOf(false) }
     var inputTextCancelar by remember { mutableStateOf("") }
@@ -105,12 +97,8 @@ fun EstadoPreparacionOrdenScreen(navController: NavHostController, _idorden: Int
 
     // Lanzar la solicitud cuando se carga la pantalla
     LaunchedEffect(Unit) {
-        scope.launch {
-            idusuario = tokenManager.idUsuario.first()
-            viewModelProductosOrden.productosOrdenRetrofit(idorden = _idorden)
-        }
+        viewModelProductosOrden.productosOrdenRetrofit(idorden = _idorden)
     }
-
 
     Scaffold(
         topBar = {
@@ -203,17 +191,12 @@ fun EstadoPreparacionOrdenScreen(navController: NavHostController, _idorden: Int
                         )
                     }
                 )
-
-
-
-
             }
 
             item {
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
-
 
 
         // INPUT TEXT NOTA CANCELAMIENTO
@@ -224,48 +207,47 @@ fun EstadoPreparacionOrdenScreen(navController: NavHostController, _idorden: Int
                 text = {
                     Column {
                         Text(stringResource(R.string.nota_para_el_cliente))
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(Modifier.height(8.dp))
                         TextField(
                             value = inputTextCancelar,
-                            onValueChange = {
-                                if (it.length <= 300) inputTextCancelar = it
-                            },
+                            onValueChange = { if (it.length <= 300) inputTextCancelar = it },
                             placeholder = { Text(stringResource(R.string.motivo)) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.colors(
+                                // línea (indicator) negra
+                                focusedIndicatorColor = Color.Black,
+                                unfocusedIndicatorColor = Color.Black,
+                                disabledIndicatorColor = Color.Black.copy(alpha = 0.38f),
+                                errorIndicatorColor = Color.Black,
+                                // cursor negro (opcional)
+                                cursorColor = Color.Black,
+                                // opcional: fondo transparente si no quieres el relleno gris
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                errorContainerColor = Color.Transparent,
+                            )
                         )
                     }
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
-
-                            if(inputTextCancelar.isEmpty()) {
-                                CustomToasty(
-                                    ctx,
-                                    textoNotaCancelaEsRequerida,
-                                    ToastType.INFO
-                                )
-                            }else{
+                            if (inputTextCancelar.isEmpty()) {
+                                CustomToasty(ctx, textoNotaCancelaEsRequerida, ToastType.INFO)
+                            } else {
                                 showDialogCancelamiento = false
                                 showModal2BotonCancelamiento = true
                             }
-
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
-                    ) {
-                        Text(stringResource(R.string.enviar))
-                    }
+                    ) { Text(stringResource(R.string.enviar)) }
                 },
                 dismissButton = {
                     TextButton(
-                        onClick = {
-
-                            showDialogCancelamiento = false
-                        },
+                        onClick = { showDialogCancelamiento = false },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
-                    ) {
-                        Text(stringResource(R.string.cancelar))
-                    }
+                    ) { Text(stringResource(R.string.cancelar)) }
                 }
             )
         }
@@ -346,12 +328,6 @@ fun EstadoPreparacionOrdenScreen(navController: NavHostController, _idorden: Int
     } // end-scalfold
 
 
-
-
-
-
-
-
     resultadoProductos?.getContentIfNotHandled()?.let { result ->
         when (result.success) {
             1 -> {
@@ -393,7 +369,6 @@ fun EstadoPreparacionOrdenScreen(navController: NavHostController, _idorden: Int
             }
         }
     }
-
 
     resultadoFinalizar?.getContentIfNotHandled()?.let { result ->
         when (result.success) {

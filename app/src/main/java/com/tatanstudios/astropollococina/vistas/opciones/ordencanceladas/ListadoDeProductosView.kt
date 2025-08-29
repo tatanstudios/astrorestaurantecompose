@@ -36,6 +36,7 @@ import com.tatanstudios.astropollococina.model.ordenes.ModeloProductoOrdenesArra
 import com.tatanstudios.astropollococina.model.rutas.Routes
 import com.tatanstudios.astropollococina.network.RetrofitBuilder
 import com.tatanstudios.astropollococina.viewmodel.ProductosOrdenViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
@@ -53,17 +54,13 @@ fun ListadoProductosOrdenScreen(navController: NavHostController, _idorden: Int,
     var modeloListaProductosArray by remember { mutableStateOf(listOf<ModeloProductoOrdenesArray>()) }
 
     val tokenManager = remember { TokenManager(ctx) }
-    var idusuario by remember { mutableStateOf("") }
 
     val coroutineScope = rememberCoroutineScope()
     //val keyboardController = LocalSoftwareKeyboardController.current
 
     // Lanzar la solicitud cuando se carga la pantalla
     LaunchedEffect(Unit) {
-        scope.launch {
-            idusuario = tokenManager.idUsuario.first()
-            viewModelProductosOrden.productosOrdenRetrofit(idorden = _idorden)
-        }
+        viewModelProductosOrden.productosOrdenRetrofit(idorden = _idorden)
     }
 
 

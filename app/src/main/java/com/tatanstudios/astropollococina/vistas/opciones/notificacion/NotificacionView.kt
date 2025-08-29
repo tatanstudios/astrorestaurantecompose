@@ -93,10 +93,10 @@ fun NotificacionScreen(
     LaunchedEffect(Unit) {
         isIgnoringOptimizations.value = isIgnoringBatteryOptimizations(ctx)
 
-        scope.launch {
+
             _idusuario = tokenManager.idUsuario.first()
             _idonesignal = getOneSignalUserId()
-        }
+
     }
 
     Scaffold(

@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -91,7 +92,6 @@ fun EstadoNuevaOrdenScreen(navController: NavHostController, _idorden: Int,
 
 
     val tokenManager = remember { TokenManager(ctx) }
-    var idusuario by remember { mutableStateOf("") }
 
     val coroutineScope = rememberCoroutineScope()
     //val keyboardController = LocalSoftwareKeyboardController.current
@@ -105,10 +105,7 @@ fun EstadoNuevaOrdenScreen(navController: NavHostController, _idorden: Int,
 
     // Lanzar la solicitud cuando se carga la pantalla
     LaunchedEffect(Unit) {
-        scope.launch {
-            idusuario = tokenManager.idUsuario.first()
-            viewModelProductosOrden.productosOrdenRetrofit(idorden = _idorden)
-        }
+        viewModelProductosOrden.productosOrdenRetrofit(idorden = _idorden)
     }
 
 
@@ -221,48 +218,47 @@ fun EstadoNuevaOrdenScreen(navController: NavHostController, _idorden: Int,
                 text = {
                     Column {
                         Text(stringResource(R.string.nota_para_el_cliente))
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(Modifier.height(8.dp))
                         TextField(
                             value = inputTextCancelar,
-                            onValueChange = {
-                                if (it.length <= 300) inputTextCancelar = it
-                            },
+                            onValueChange = { if (it.length <= 300) inputTextCancelar = it },
                             placeholder = { Text(stringResource(R.string.motivo)) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.colors(
+                                // línea (indicator) negra
+                                focusedIndicatorColor = Color.Black,
+                                unfocusedIndicatorColor = Color.Black,
+                                disabledIndicatorColor = Color.Black.copy(alpha = 0.38f),
+                                errorIndicatorColor = Color.Black,
+                                // cursor negro (opcional)
+                                cursorColor = Color.Black,
+                                // opcional: fondo transparente si no quieres el relleno gris
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                errorContainerColor = Color.Transparent,
+                            )
                         )
                     }
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
-
-                            if(inputTextCancelar.isEmpty()) {
-                                CustomToasty(
-                                    ctx,
-                                    textoNotaCancelaEsRequerida,
-                                    ToastType.INFO
-                                )
-                            }else{
+                            if (inputTextCancelar.isEmpty()) {
+                                CustomToasty(ctx, textoNotaCancelaEsRequerida, ToastType.INFO)
+                            } else {
                                 showDialogCancelamiento = false
                                 showModal2BotonCancelamiento = true
                             }
-
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
-                    ) {
-                        Text(stringResource(R.string.enviar))
-                    }
+                    ) { Text(stringResource(R.string.enviar)) }
                 },
                 dismissButton = {
                     TextButton(
-                        onClick = {
-
-                            showDialogCancelamiento = false
-                        },
+                        onClick = { showDialogCancelamiento = false },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
-                    ) {
-                        Text(stringResource(R.string.cancelar))
-                    }
+                    ) { Text(stringResource(R.string.cancelar)) }
                 }
             )
         }

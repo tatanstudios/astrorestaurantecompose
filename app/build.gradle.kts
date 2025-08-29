@@ -7,14 +7,14 @@ plugins {
 
 android {
     namespace = "com.tatanstudios.astropollococina"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.tatanstudios.astropollococina"
         minSdk = 27
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 5
-        versionName = "1.1.0"
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
