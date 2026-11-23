@@ -19,8 +19,10 @@ class SistemaController : Application() {
         // sesion de la API (token de Sanctum)
         SesionApi.iniciar(this)
 
-        // Verbose Logging set to help debug issues, remove before releasing your app.
-        OneSignal.Debug.logLevel = LogLevel.VERBOSE
+        // logs detallados de OneSignal solo en debug (en release no se llena el logcat)
+        if (com.tatanstudios.astropollococina.BuildConfig.DEBUG) {
+            OneSignal.Debug.logLevel = LogLevel.VERBOSE
+        }
 
         // OneSignal Initialization
         OneSignal.initWithContext(this, ONESIGNAL_APP_ID)

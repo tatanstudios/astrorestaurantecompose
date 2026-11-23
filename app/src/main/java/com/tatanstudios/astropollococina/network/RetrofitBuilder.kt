@@ -11,7 +11,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitBuilder {
 
     // El servidor depende del tipo de compilacion (ver app/build.gradle.kts):
-    // debug -> servidor local, release -> produccion.
+    // hoy debug y release apuntan a produccion.
     private const val BASE_URL = com.tatanstudios.astropollococina.BuildConfig.BASE_URL
     const val urlImagenes = com.tatanstudios.astropollococina.BuildConfig.URL_IMAGENES
 

@@ -12,8 +12,8 @@ android {
         applicationId = "com.tatanstudios.astropollococina"
         minSdk = 27
         targetSdk = 36
-        versionCode = 6
-        versionName = "2.0.1"
+        versionCode = 7
+        versionName = "3.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -82,7 +82,7 @@ dependencies {
     implementation("io.reactivex.rxjava3:rxandroid:3.0.0")
 
     // Notificaciones
-    implementation("com.onesignal:OneSignal:[5.0.0, 5.99.99]")
+    implementation("com.onesignal:OneSignal:5.11.0")   // version fija: builds reproducibles
 
     // UI: imágenes, animaciones y avisos
     implementation("io.coil-kt:coil-compose:2.7.0")
