@@ -1,21 +1,23 @@
 package com.tatanstudios.astropollococina.network
 
 import okhttp3.OkHttpClient
-import okhttp3.Request
+import com.tatanstudios.astropollococina.extras.SesionApi
+import io.reactivex.rxjava3.functions.Predicate
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitBuilder {
 
-    //** SERVIDOR
-    private const val BASE_URL = "http://165.227.196.71/api/"
-    const val urlImagenes = "http://165.227.196.71/storage/imagenes/"
+    // El servidor depende del tipo de compilacion (ver app/build.gradle.kts):
+    // debug -> servidor local, release -> produccion.
+    private const val BASE_URL = com.tatanstudios.astropollococina.BuildConfig.BASE_URL
+    const val urlImagenes = com.tatanstudios.astropollococina.BuildConfig.URL_IMAGENES
 
-
-    //** LOCAL
- //   private const val BASE_URL = "http://192.168.1.4:8080/api/"
-  //  const val urlImagenes = "http://192.168.1.4:8080/storage/imagenes/"
+    // Para .retry(RetrofitBuilder.reintentar): reintenta fallos de red, pero no errores 4xx (sin sesion, no autorizado),
+    // que se repetirian para siempre.
+    val reintentar = Predicate<Throwable> { error -> !(error is HttpException && error.code() in 400..499) }
 
     private var retrofit: Retrofit? = null
     private var apiService: ApiService? = null
@@ -42,11 +44,18 @@ object RetrofitBuilder {
     private fun buildClientNoAuth(): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor { chain ->
-                val request: Request = chain.request().newBuilder()
+                val builder = chain.request().newBuilder()
                     .addHeader("Accept", "application/json")
                     .addHeader("Connection", "close")
-                    .build()
-                chain.proceed(request)
+
+                // token de Sanctum (el login funciona igual sin token)
+                val token = SesionApi.token()
+                if (token.isNotEmpty()) builder.addHeader("Authorization", "Bearer $token")
+
+                val response = chain.proceed(builder.build())
+                // token rechazado: se borra la sesion y la app vuelve al login
+                if (response.code == 401) SesionApi.notificarSesionExpirada()
+                response
             }
             .build()
     }

@@ -27,12 +27,6 @@ sealed class ItemsMenuLateral(
         1
     )
 
-    object ItemMenu2 : ItemsMenuLateral(
-        Icons.AutoMirrored.Filled.ListAlt,
-        R.string.orden_en_preparacion,
-        2
-    )
-
     object ItemMenu3 : ItemsMenuLateral(
         Icons.Filled.Inventory,
         R.string.completadas_hoy,
@@ -73,7 +67,6 @@ sealed class ItemsMenuLateral(
 
 // Lista de items del menú lateral
 val itemsMenu = listOf(ItemsMenuLateral.ItemMenu1,
-    ItemsMenuLateral.ItemMenu2,
     ItemsMenuLateral.ItemMenu3,
     ItemsMenuLateral.ItemMenu4,
     ItemsMenuLateral.ItemMenu5,

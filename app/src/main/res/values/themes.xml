@@ -3,7 +3,7 @@
 
     <style name="Theme.AstroRestauranteCompose" parent="android:Theme.Material.Light.NoActionBar" >
 
-        <item name="android:windowBackground">@color/colorRojoApp</item>
+        <item name="android:windowBackground">@color/colorCremaV1</item>
 </style>
 
 </resources>

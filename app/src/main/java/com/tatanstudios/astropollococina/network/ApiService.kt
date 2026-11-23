@@ -10,7 +10,6 @@ import com.tatanstudios.astropollococina.model.ordenes.ModeloListaProductoCatego
 import com.tatanstudios.astropollococina.model.ordenes.ModeloNuevasOrdenes
 import com.tatanstudios.astropollococina.model.ordenes.ModeloOrdenesCanceladas
 import com.tatanstudios.astropollococina.model.ordenes.ModeloOrdenesCompletadas
-import com.tatanstudios.astropollococina.model.ordenes.ModeloOrdenesPreparacion
 import com.tatanstudios.astropollococina.model.ordenes.ModeloProductoHistorialOrdenes
 import com.tatanstudios.astropollococina.model.ordenes.ModeloProductoOrdenes
 import io.reactivex.rxjava3.core.Single
@@ -21,18 +20,26 @@ import retrofit2.http.POST
 interface ApiService {
 
     // VERIFICACION DE NUMERO
+    // CERRAR SESION: revoca el token de este dispositivo
+    @POST("restaurante/cerrar-sesion")
+    fun cerrarSesion(): Single<ModeloDatosBasicos>
+
+
     @POST("restaurante/login")
     @FormUrlEncoded
     fun verificarUsuarioPassword(@Field("usuario") telefono: String,
                           @Field("password") password: String,
-                          @Field("idfirebase") idfirebase: String?
+                          @Field("idfirebase") idfirebase: String?,
+                          // 1 = esta app usa External ID de OneSignal (la API borra el token viejo)
+                          @Field("externo") externo: Int = 1
                           ): Single<ModeloLogin>
 
     // LISTADO DE NUEVAS ORDENES
     @POST("restaurante/nuevas/ordenes")
     @FormUrlEncoded
     fun listadoNuevasOrdenas(@Field("id") id: String,
-                             @Field("idfirebase") idfirebase: String?
+                             @Field("idfirebase") idfirebase: String?,
+                             @Field("externo") externo: Int = 1
     ): Single<ModeloNuevasOrdenes>
 
 
@@ -64,20 +71,7 @@ interface ApiService {
     ): Single<ModeloInfoProducto>
 
 
-    // LISTADO DE ORDENES EN PREPARACION
-    @POST("restaurante/preparacion/ordenes")
-    @FormUrlEncoded
-    fun listadoOrdenesPreparacion(@Field("id") id: String
-    ): Single<ModeloOrdenesPreparacion>
-
-    // FINALIZAR ORDEN EN PREPARACION
-    @POST("restaurante/proceso/orden/finalizar-orden")
-    @FormUrlEncoded
-    fun finalizarOrden(@Field("idorden") idorden: Int
-    ): Single<ModeloDatosBasicos>
-
-
-    // LISTADO DE ORDENES FINALIZADAS HOY
+    // LISTADO DE ORDENES INICIADAS HOY
     @POST("restaurante/completadashoy/ordenes")
     @FormUrlEncoded
     fun listadoOrdenesCompletadas(@Field("id") id: String
@@ -143,7 +137,7 @@ interface ApiService {
     @POST("restaurante/notificacion/modo/prueba")
     @FormUrlEncoded
     fun notificacionPrueba(@Field("id") id: String,
-                           @Field("tokenid") tokenid: String,
+                           @Field("externo") externo: Int = 1
     ): Single<ModeloDatosBasicos>
 
 

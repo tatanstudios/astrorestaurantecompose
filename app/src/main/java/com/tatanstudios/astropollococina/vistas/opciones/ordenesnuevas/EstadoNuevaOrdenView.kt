@@ -1,5 +1,25 @@
 package com.tatanstudios.astropollococina.vistas.opciones.ordenesnuevas
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.window.Dialog
+import com.tatanstudios.astropollococina.componentes.AppColors
+import com.tatanstudios.astropollococina.componentes.BarraSuperior
+import com.tatanstudios.astropollococina.componentes.BloqueSkeleton
+import com.tatanstudios.astropollococina.componentes.ContenedorSkeleton
+import com.tatanstudios.astropollococina.componentes.ErrorReintentar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +28,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -58,6 +83,7 @@ import com.tatanstudios.astropollococina.viewmodel.ProductosOrdenViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EstadoNuevaOrdenScreen(navController: NavHostController, _idorden: Int,
                            viewModelCancelar: CancelarOrdenViewModel = viewModel(),
@@ -75,10 +101,22 @@ fun EstadoNuevaOrdenScreen(navController: NavHostController, _idorden: Int,
     // Para datos de orden cancelada
     val isLoadingCancelar by viewModelCancelar.isLoading.observeAsState(initial = false)
     val resultadoCancelar by viewModelCancelar.resultado.observeAsState()
+    val errorCancelar by viewModelCancelar.error.observeAsState()
+    LaunchedEffect(errorCancelar) {
+        errorCancelar?.getContentIfNotHandled()?.let {
+            CustomToasty(ctx, ctx.getString(R.string.error_reintentar_de_nuevo), ToastType.ERROR)
+        }
+    }
 
     // para datos de iniciar orden
     val isLoadingIniciar by viewModelIniciarOrden.isLoading.observeAsState(initial = false)
     val resultadoIniciar by viewModelIniciarOrden.resultado.observeAsState()
+    val errorIniciar by viewModelIniciarOrden.error.observeAsState()
+    LaunchedEffect(errorIniciar) {
+        errorIniciar?.getContentIfNotHandled()?.let {
+            CustomToasty(ctx, ctx.getString(R.string.error_reintentar_de_nuevo), ToastType.ERROR)
+        }
+    }
     var showDialogIniciarOrden by remember { mutableStateOf(false) }
     var showDialogOrdenIniciadaApi by remember { mutableStateOf(false) }
 
@@ -97,10 +135,7 @@ fun EstadoNuevaOrdenScreen(navController: NavHostController, _idorden: Int,
     //val keyboardController = LocalSoftwareKeyboardController.current
 
     var showDialogCancelamiento by remember { mutableStateOf(false) }
-    var inputTextCancelar by remember { mutableStateOf("") }
 
-    var showModal2BotonCancelamiento by remember { mutableStateOf(false) }
-    val textoNotaCancelaEsRequerida = stringResource(R.string.nota_cancelamiento_es_requerida)
 
 
     // Lanzar la solicitud cuando se carga la pantalla
@@ -111,206 +146,150 @@ fun EstadoNuevaOrdenScreen(navController: NavHostController, _idorden: Int,
 
 
     Scaffold(
+        containerColor = AppColors.crema,
         topBar = {
-            BarraToolbarColor(
-                navController,
-                stringResource(R.string.estado_de_orden),
-                colorResource(R.color.colorRojo)
+            BarraSuperior(
+                titulo = "Orden #$_idorden",
+                onAtras = { navController.popBackStack() }
             )
+        },
+        // acciones fijas abajo: primero se revisa el pedido completo, luego se inicia o cancela
+        bottomBar = {
+            if (boolDatosCargados) {
+                Surface(shadowElevation = 12.dp, color = Color.White) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showDialogCancelamiento = true },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.rojoOscuro),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, AppColors.rojoOscuro),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.weight(1f).height(52.dp)
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Cancelar", fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Button(
+                            onClick = { showDialogIniciarOrden = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = AppColors.verde, contentColor = Color.White),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.weight(1.6f).height(52.dp)
+                        ) {
+                            Icon(Icons.Filled.Restaurant, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Iniciar orden", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
         }
     ) { innerPadding ->
-        LazyColumn(
-            contentPadding = innerPadding,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
-                .imePadding(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(innerPadding)
         ) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Orden #: $_idorden",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black
-                    )
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(
-                        onClick = { showDialogCancelamiento = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Red,
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.cancelar))
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Button(
-                        onClick = { showDialogIniciarOrden = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.iniciar))
+            if (!boolDatosCargados && isLoadingProductos) {
+                ContenedorSkeleton(Modifier.fillMaxSize().padding(16.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        BloqueSkeleton(Modifier.fillMaxWidth().height(70.dp), radio = 16.dp)
+                        repeat(4) { BloqueSkeleton(Modifier.fillMaxWidth().height(96.dp), radio = 16.dp) }
                     }
                 }
-            }
+            } else if (boolDatosCargados) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    item {
+                        val unidades = modeloListaProductosArray.sumOf { it.cantidad }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(AppColors.ambarFondo)
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.HourglassTop, contentDescription = null, tint = AppColors.ambar, modifier = Modifier.size(26.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Esperando que la inicies", fontWeight = FontWeight.SemiBold, color = AppColors.ambar)
+                                Text(
+                                    "$unidades ${if (unidades == 1) "producto" else "productos"} · toca uno para ver el detalle",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = AppColors.grisTexto
+                                )
+                            }
+                        }
+                    }
 
-            // Listado dinámico
-            items(modeloListaProductosArray) { tipoProducto ->
-                // Aquí colocas tu componente personalizado o vista para cada producto
-
-
-                ProductoItemCard(
-                    cantidad = tipoProducto.cantidad.toString(),
-                    hayImagen = tipoProducto.utilizaImagen,
-                    imagenUrl = "${RetrofitBuilder.urlImagenes}${tipoProducto.imagen}",
-                    titulo = tipoProducto.nombreProducto,
-                    descripcion = tipoProducto.nota,
-                    precio = tipoProducto.precio,
-                    onClick = {
-
-                        navController.navigate(
-                            Routes.VistaInfoProductoOrden.createRoute(
-                                tipoProducto.id.toString(),
-                            ),
-                            navOptions {
-                                launchSingleTop = true
+                    items(modeloListaProductosArray) { tipoProducto ->
+                        ProductoItemCard(
+                            cantidad = tipoProducto.cantidad.toString(),
+                            hayImagen = tipoProducto.utilizaImagen,
+                            imagenUrl = "${RetrofitBuilder.urlImagenes}${tipoProducto.imagen}",
+                            titulo = tipoProducto.nombreProducto,
+                            descripcion = tipoProducto.nota,
+                            precio = tipoProducto.precio,
+                            opciones = tipoProducto.opciones.orEmpty(),
+                            onClick = {
+                                navController.navigate(
+                                    Routes.VistaInfoProductoOrden.createRoute(tipoProducto.id.toString()),
+                                    navOptions { launchSingleTop = true }
+                                )
                             }
                         )
                     }
-                )
+                }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+            ErrorReintentar(viewModelProductosOrden, isLoadingProductos)
         }
 
-
-
-        // INPUT TEXT NOTA CANCELAMIENTO
+        // CANCELAR: motivo (lo ve el cliente) + confirmacion
         if (showDialogCancelamiento) {
-            AlertDialog(
-                onDismissRequest = { showDialogCancelamiento = false },
-                title = { Text(stringResource(R.string.cancelacion)) },
-                text = {
-                    Column {
-                        Text(stringResource(R.string.nota_para_el_cliente))
-                        Spacer(Modifier.height(8.dp))
-                        TextField(
-                            value = inputTextCancelar,
-                            onValueChange = { if (it.length <= 300) inputTextCancelar = it },
-                            placeholder = { Text(stringResource(R.string.motivo)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                // línea (indicator) negra
-                                focusedIndicatorColor = Color.Black,
-                                unfocusedIndicatorColor = Color.Black,
-                                disabledIndicatorColor = Color.Black.copy(alpha = 0.38f),
-                                errorIndicatorColor = Color.Black,
-                                // cursor negro (opcional)
-                                cursorColor = Color.Black,
-                                // opcional: fondo transparente si no quieres el relleno gris
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                errorContainerColor = Color.Transparent,
-                            )
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            if (inputTextCancelar.isEmpty()) {
-                                CustomToasty(ctx, textoNotaCancelaEsRequerida, ToastType.INFO)
-                            } else {
-                                showDialogCancelamiento = false
-                                showModal2BotonCancelamiento = true
-                            }
-                        },
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
-                    ) { Text(stringResource(R.string.enviar)) }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { showDialogCancelamiento = false },
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
-                    ) { Text(stringResource(R.string.cancelar)) }
+            com.tatanstudios.astropollococina.componentes.DialogoCancelarOrden(
+                idorden = _idorden,
+                onDismiss = { showDialogCancelamiento = false },
+                onConfirmar = { motivo ->
+                    showDialogCancelamiento = false
+                    viewModelCancelar.cancelarOrdenRetrofit(idorden = _idorden, notaCancelar = motivo)
                 }
-            )
-        }
-
-        // CONFIRMAR PARA CANCELAR
-        if(showModal2BotonCancelamiento){
-            CustomModal2Botones(
-                showDialog = true,
-                message = stringResource(R.string.cancelar_orden),
-                onDismiss = { showModal2BotonCancelamiento = false },
-                onAccept = {
-                    showModal2BotonCancelamiento = false
-
-                    coroutineScope.launch {
-                        viewModelCancelar.cancelarOrdenRetrofit(
-                            idorden = _idorden,
-                            notaCancelar = inputTextCancelar
-                        )
-                    }
-
-                },
-                stringResource(R.string.si),
-                stringResource(R.string.no),
             )
         }
 
         // CONFIRMAR PARA INICIAR ORDEN
-        if(showDialogIniciarOrden){
+        if (showDialogIniciarOrden) {
             CustomModal2Botones(
                 showDialog = true,
-                message = stringResource(R.string.iniciar_orden),
+                message = "Se le avisará al cliente que su orden se está preparando.",
                 onDismiss = { showDialogIniciarOrden = false },
                 onAccept = {
                     showDialogIniciarOrden = false
                     textoTituloApi = ""
                     textoMensajeApi = ""
-
                     coroutineScope.launch {
-                        viewModelIniciarOrden.iniciarOrdenRetrofit(
-                            idorden = _idorden,
-                        )
+                        viewModelIniciarOrden.iniciarOrdenRetrofit(idorden = _idorden)
                     }
-
                 },
-                stringResource(R.string.si),
-                stringResource(R.string.no),
+                txtBtnAceptar = "Iniciar",
+                txtBtnCancelar = "Todavía no",
+                colorAceptar = AppColors.verde,
+                titulo = "¿Iniciar la orden #$_idorden?",
             )
         }
 
         // MENSAJE DE API AL INICIAR ORDEN
-        if(showDialogOrdenIniciadaApi){
-
+        if (showDialogOrdenIniciadaApi) {
             CustomModal1BotonTitulo(
                 showDialog = showDialogOrdenIniciadaApi,
                 title = textoTituloApi,
@@ -322,19 +301,8 @@ fun EstadoNuevaOrdenScreen(navController: NavHostController, _idorden: Int,
             )
         }
 
-        if (isLoadingProductos) {
-            LoadingModal(isLoading = true)
-        }
-
-        if (isLoadingCancelar) {
-            LoadingModal(isLoading = true)
-        }
-
-        if (isLoadingIniciar) {
-            LoadingModal(isLoading = true)
-        }
-
-
+        if (isLoadingCancelar) LoadingModal(isLoading = true, titulo = "Cancelando orden...")
+        if (isLoadingIniciar) LoadingModal(isLoading = true, titulo = "Iniciando orden...")
 
     } // end-scalfold
 

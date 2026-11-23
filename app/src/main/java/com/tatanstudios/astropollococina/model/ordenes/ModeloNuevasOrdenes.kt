@@ -7,7 +7,11 @@ data class ModeloNuevasOrdenes(
     @SerializedName("success") val success: Int,
     @SerializedName("id") val id: Int,
     @SerializedName("hayordenes") val nombre: Int,
-    @SerializedName("ordenes") val lista: List<ModeloNuevasOrdenesArray>
+    @SerializedName("ordenes") val lista: List<ModeloNuevasOrdenesArray>,
+    // para el menu lateral; null con versiones viejas de la API
+    @SerializedName("restaurante") val restaurante: String? = null,
+    @SerializedName("usuario") val usuario: String? = null,
+    @SerializedName("login") val login: String? = null,
 )
 
 data class ModeloNuevasOrdenesArray(
@@ -26,8 +30,6 @@ data class ModeloNuevasOrdenesArray(
     @SerializedName("direccion") val direccion: String,
     @SerializedName("telefono") val telefono: String?,
     @SerializedName("referencia") val referencia: String?,
-    @SerializedName("haypremio") val haypremio: Int,
-    @SerializedName("textopremio") val textopremio: String?,
     @SerializedName("mensaje_cupon") val mensajeCupon: String?,
 )
 
@@ -51,6 +53,8 @@ data class ModeloProductoOrdenesArray(
     @SerializedName("imagen") val imagen: String?,
     @SerializedName("descripcion") val descripcion: String?,
     @SerializedName("multiplicado") val multiplicado: String?,
+    // opciones elegidas por el cliente (modificadores), una linea por bloque; null en versiones viejas de la API
+    @SerializedName("opciones") val opciones: List<String>? = null,
 )
 
 
@@ -81,6 +85,8 @@ data class ModeloInfoProductoArray(
     @SerializedName("imagen") val imagen: String?,
     @SerializedName("descripcion") val descripcion: String?,
     @SerializedName("multiplicado") val multiplicado: String?,
+    // opciones elegidas por el cliente (modificadores), una linea por bloque; null en versiones viejas de la API
+    @SerializedName("opciones") val opciones: List<String>? = null,
 )
 
 
@@ -126,8 +132,6 @@ data class ModeloHistorialOrdenesArray(
     @SerializedName("direccion") val direccion: String,
     @SerializedName("telefono") val telefono: String?,
     @SerializedName("referencia") val referencia: String?,
-    @SerializedName("haypremio") val haypremio: Int,
-    @SerializedName("textopremio") val textopremio: String?,
     @SerializedName("mensaje_cupon") val mensajeCupon: String?,
 )
 
@@ -151,4 +155,6 @@ data class ModeloProductoHistorialOrdenesArray(
     @SerializedName("imagen") val imagen: String?,
     @SerializedName("descripcion") val descripcion: String?,
     @SerializedName("multiplicado") val multiplicado: String?,
+    // opciones elegidas por el cliente (modificadores), una linea por bloque; null en versiones viejas de la API
+    @SerializedName("opciones") val opciones: List<String>? = null,
 )

@@ -1,149 +1,114 @@
 package com.tatanstudios.astropollococina.vistas.opciones.historial
 
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.navOptions
 import com.tatanstudios.astropollococina.R
-import com.tatanstudios.astropollococina.componentes.BarraToolbarColor
+import com.tatanstudios.astropollococina.componentes.AppColors
+import com.tatanstudios.astropollococina.componentes.BarraSuperior
 import com.tatanstudios.astropollococina.componentes.CustomToasty
-import com.tatanstudios.astropollococina.componentes.LoadingModal
-import com.tatanstudios.astropollococina.componentes.ProductoListadoHistorialItemCard
+import com.tatanstudios.astropollococina.componentes.ErrorReintentar
+import com.tatanstudios.astropollococina.componentes.EstadoVacio
+import com.tatanstudios.astropollococina.componentes.ListaSkeleton
+import com.tatanstudios.astropollococina.componentes.ProductoItemCard
 import com.tatanstudios.astropollococina.componentes.ToastType
-import com.tatanstudios.astropollococina.extras.TokenManager
 import com.tatanstudios.astropollococina.model.ordenes.ModeloProductoHistorialOrdenesArray
 import com.tatanstudios.astropollococina.model.rutas.Routes
 import com.tatanstudios.astropollococina.network.RetrofitBuilder
 import com.tatanstudios.astropollococina.viewmodel.ListadoProductosHistorialOrdenViewModel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
+/** Productos de una orden del historial. */
 @Composable
 fun ListadoProductosHistorialScreen(navController: NavHostController, _idorden: Int,
                                     viewModelProductosListaHistorial: ListadoProductosHistorialOrdenViewModel = viewModel(),
 ) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    // listado de productos
-    val isLoading by viewModelProductosListaHistorial.isLoading.observeAsState(initial = false)
+    val isLoading by viewModelProductosListaHistorial.isLoading.observeAsState(initial = true)
     val resultado by viewModelProductosListaHistorial.resultado.observeAsState()
-    var boolDatosCargados by remember { mutableStateOf(false) }
+    var productos by remember { mutableStateOf<List<ModeloProductoHistorialOrdenesArray>?>(null) }
 
-    var modeloListaProductosHistorialArray by remember { mutableStateOf(listOf<ModeloProductoHistorialOrdenesArray>()) }
-
-    val tokenManager = remember { TokenManager(ctx) }
-    var idusuario by remember { mutableStateOf("") }
-
-    //val keyboardController = LocalSoftwareKeyboardController.current
-
-    var _idProducto by remember { mutableStateOf(0) }
-
-
-    // Lanzar la solicitud cuando se carga la pantalla
     LaunchedEffect(Unit) {
-
-            idusuario = tokenManager.idUsuario.first()
-            viewModelProductosListaHistorial.listaProductosHistorialRetrofit(idorden = _idorden)
-
+        viewModelProductosListaHistorial.listaProductosHistorialRetrofit(idorden = _idorden)
     }
 
     Scaffold(
-        topBar = {
-            BarraToolbarColor(
-                navController,
-                stringResource(R.string.productos),
-                colorResource(R.color.colorRojo)
-            )
-        }
+        containerColor = AppColors.crema,
+        topBar = { BarraSuperior(titulo = "Productos · Orden #$_idorden", onAtras = { navController.popBackStack() }) }
     ) { innerPadding ->
-        LazyColumn(
-            contentPadding = innerPadding,
-            modifier = Modifier
+        Box(
+            Modifier
                 .fillMaxSize()
-                .padding(16.dp)
-                .imePadding(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(innerPadding)
         ) {
-            // Listado dinámico
-            items(modeloListaProductosHistorialArray) { tipoProducto ->
-                // Aquí colocas tu componente personalizado o vista para cada producto
+            val lista = productos
+            when {
+                lista == null -> if (isLoading) ListaSkeleton(cantidad = 4, alto = 96.dp)
 
-                ProductoListadoHistorialItemCard(
-                    cantidad = tipoProducto.cantidad.toString(),
-                    hayImagen = tipoProducto.utilizaImagen,
-                    imagenUrl = "${RetrofitBuilder.urlImagenes}${tipoProducto.imagen}",
-                    titulo = tipoProducto.nombreProducto,
-                    descripcion = tipoProducto.nota,
-                    precio = tipoProducto.precio,
-                    onClick = {
+                lista.isEmpty() -> EstadoVacio(Icons.Filled.ShoppingBag, "Sin productos", "Esta orden no tiene productos registrados.")
 
-                        navController.navigate(
-                            Routes.VistaInfoProductoOrden.createRoute(
-                                tipoProducto.id.toString(),
-                            ),
-                            navOptions {
-                                launchSingleTop = true
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    item {
+                        val unidades = lista.sumOf { it.cantidad }
+                        Text(
+                            "$unidades ${if (unidades == 1) "producto" else "productos"} · toca uno para ver el detalle",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AppColors.grisIcono
+                        )
+                    }
+                    items(lista) { producto ->
+                        ProductoItemCard(
+                            cantidad = producto.cantidad.toString(),
+                            hayImagen = producto.utilizaImagen,
+                            imagenUrl = "${RetrofitBuilder.urlImagenes}${producto.imagen}",
+                            titulo = producto.nombreProducto,
+                            descripcion = producto.nota,
+                            precio = producto.precio,
+                            opciones = producto.opciones.orEmpty(),
+                            onClick = {
+                                navController.navigate(Routes.VistaInfoProductoOrden.createRoute(producto.id.toString())) {
+                                    launchSingleTop = true
+                                }
                             }
                         )
                     }
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
-
-
-
-        if (isLoading) {
-            LoadingModal(isLoading = true)
-        }
-
-
-        resultado?.getContentIfNotHandled()?.let { result ->
-            when (result.success) {
-                1 -> {
-                    // LISTADO DE PRODUCTOS
-                    modeloListaProductosHistorialArray = result.lista
-                    boolDatosCargados = true
-
-                }
-                else -> {
-                    // Error, recargar de nuevo
-                    CustomToasty(
-                        ctx,
-                        stringResource(id = R.string.error_reintentar_de_nuevo),
-                        ToastType.ERROR
-                    )
                 }
             }
+
+            ErrorReintentar(viewModelProductosListaHistorial, isLoading)
         }
+    }
 
-
-    } // end-scalfold
-
-
+    resultado?.getContentIfNotHandled()?.let { result ->
+        if (result.success == 1) {
+            productos = result.lista
+        } else {
+            CustomToasty(ctx, stringResource(id = R.string.error_reintentar_de_nuevo), ToastType.ERROR)
+        }
+    }
 }

@@ -1,8 +1,10 @@
 package com.tatanstudios.astropollococina.vistas.principal
 
+import com.tatanstudios.astropollococina.extras.SesionApi
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,10 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -92,16 +100,51 @@ fun PrincipalScreen(
     var _idonesignal by remember { mutableStateOf("") }
 
     var popUsuarioBloqueado by remember { mutableStateOf(false) }
+
+    // si falta un ajuste para recibir pedidos siempre (permiso, bateria, pausa por inactividad), avisar al entrar
+    var avisoAjustesNotificaciones by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val n = com.tatanstudios.astropollococina.extras.Notificaciones
+        if (!n.avisoAjustesMostrado && n.faltaAlgo(ctx)) {
+            n.avisoAjustesMostrado = true
+            avisoAjustesNotificaciones = true
+        }
+    }
     var modeloListaOrdenesNuevasArray by remember { mutableStateOf(listOf<ModeloNuevasOrdenesArray>()) }
+    // restaurante y usuario con sesion (vienen con el listado de ordenes nuevas)
+    var nombreRestaurante by remember { mutableStateOf<String?>(null) }
+    var nombreUsuario by remember { mutableStateOf<String?>(null) }
+    var loginUsuario by remember { mutableStateOf<String?>(null) }
     var popErrorCargar by remember { mutableStateOf(false) }
 
 
-    val refreshing by remember { mutableStateOf(false) }
+    // recarga pedida por el usuario (deslizar o boton): se muestra el indicador y al final un aviso
+    var recargaManual by remember { mutableStateOf(false) }
+    val refreshing = recargaManual && isLoading
+    val errorCarga by viewModel.error.observeAsState(false)
+    fun recargar() {
+        if (_idusuario.isEmpty()) return
+        recargaManual = true
+        viewModel.nuevasOrdenesRetrofit(_idusuario, _idonesignal)
+    }
+    LaunchedEffect(isLoading) {
+        if (!isLoading && recargaManual) {
+            recargaManual = false
+            if (errorCarga) {
+                CustomToasty(ctx, "No se pudo actualizar. Revisa tu internet.", ToastType.ERROR)
+            } else {
+                val n = modeloListaOrdenesNuevasArray.size
+                CustomToasty(
+                    ctx,
+                    if (n == 0) "Lista actualizada · sin órdenes nuevas" else "Lista actualizada · $n ${if (n == 1) "orden nueva" else "órdenes nuevas"}",
+                    ToastType.SUCCESS
+                )
+            }
+        }
+    }
     val pullRefreshState = rememberPullRefreshState(
         refreshing = refreshing,
-        onRefresh = {
-            viewModel.nuevasOrdenesRetrofit(_idusuario, _idonesignal)
-        }
+        onRefresh = { recargar() }
     )
 
     LaunchedEffect(Unit) {
@@ -111,6 +154,12 @@ fun PrincipalScreen(
 
             viewModel.nuevasOrdenesRetrofit(_idusuario, _idonesignal)
 
+            // actualizar sola cada 30 s mientras esta pantalla está abierta
+            // (al ir a otra pantalla se detiene; al volver se recarga de nuevo)
+            while (true) {
+                kotlinx.coroutines.delay(30_000)
+                if (_idusuario.isNotEmpty()) viewModel.nuevasOrdenesRetrofit(_idusuario, _idonesignal)
+            }
     }
 
     // ocultar teclado
@@ -120,22 +169,22 @@ fun PrincipalScreen(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
-                DrawerHeader()
-                DrawerBody(items = itemsMenu) { item ->
-                    when (item.id) {
+            ModalDrawerSheet(
+                drawerContainerColor = Color.White,
+                drawerShape = androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
+            ) {
+                com.tatanstudios.astropollococina.componentes.MenuLateral(
+                    cantidadNuevas = modeloListaOrdenesNuevasArray.size,
+                    version = getVersionName(ctx),
+                    restaurante = nombreRestaurante,
+                    usuario = nombreUsuario,
+                    login = loginUsuario,
+                ) { opcion ->
+                    when (opcion) {
                         1 -> {
 
-                            boolDatosCargados = false
-                            viewModel.nuevasOrdenesRetrofit(_idusuario, _idonesignal)
-                        }
-                        2 -> {
-
-                            navController.navigate(Routes.VistaListadoOrdenPreparacion.route) {
-                                navOptions {
-                                    launchSingleTop = true
-                                }
-                            }
+                            recargar()
                         }
                         3 -> {
 
@@ -187,28 +236,18 @@ fun PrincipalScreen(
                     }
                 }
 
-                // Spacer para empujar el contenido hacia arriba
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Texto de la versión
-                Text(
-                    text = stringResource(R.string.version) + " " + getVersionName(ctx),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodySmall
-                )
             }
         }
     ) {
 
         Scaffold(
+            containerColor = com.tatanstudios.astropollococina.componentes.AppColors.crema,
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            stringResource(R.string.nuevas_ordenes),
+                            stringResource(R.string.nuevas_ordenes) +
+                                if (modeloListaOrdenesNuevasArray.isNotEmpty()) " (${modeloListaOrdenesNuevasArray.size})" else "",
                             color = Color.White,
                             fontWeight = FontWeight.Medium
                         )
@@ -218,8 +257,21 @@ fun PrincipalScreen(
                             Icon(Icons.Filled.Menu, contentDescription = null, tint = Color.White)
                         }
                     },
+                    actions = {
+                        IconButton(onClick = { recargar() }, enabled = !refreshing) {
+                            if (refreshing) {
+                                androidx.compose.material3.CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            } else {
+                                Icon(Icons.Filled.Refresh, contentDescription = "Recargar", tint = Color.White)
+                            }
+                        }
+                    },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = colorResource(R.color.colorRojo),
+                        containerColor = com.tatanstudios.astropollococina.componentes.AppColors.rojoBarra,
                         titleContentColor = Color.White,
                         navigationIconContentColor = Color.White
                     )
@@ -234,30 +286,21 @@ fun PrincipalScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(innerPadding)
+                        .pullRefresh(pullRefreshState), // también se puede recargar sin órdenes
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.carrovacio),
-                            contentDescription = stringResource(R.string.sin_ordenes),
-                            modifier = Modifier
-                                .fillMaxWidth(0.4f)  // más pequeña aquí
-                                .aspectRatio(1f),
-                            contentScale = ContentScale.Fit
-                        )
+                    com.tatanstudios.astropollococina.componentes.EstadoVacio(
+                        icono = androidx.compose.material.icons.Icons.Filled.NotificationsNone,
+                        titulo = stringResource(R.string.no_hay_ordenes_nuevas),
+                        mensaje = "Te avisaremos cuando llegue una orden. La lista se actualiza sola cada 30 segundos o puedes deslizar hacia abajo."
+                    )
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = stringResource(R.string.no_hay_ordenes_nuevas),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Black,
-                            fontSize = 18.sp
-                        )
-                    }
+                    PullRefreshIndicator(
+                        refreshing = refreshing,
+                        state = pullRefreshState,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
                 }
 
             }else{
@@ -268,7 +311,9 @@ fun PrincipalScreen(
                         .pullRefresh(pullRefreshState) // si usas pull-to-refresh
                 ) {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize().background(com.tatanstudios.astropollococina.componentes.AppColors.crema),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         modeloListaOrdenesNuevasArray.forEach { tipoOrden ->
                             item {
@@ -278,8 +323,6 @@ fun PrincipalScreen(
                                     venta = tipoOrden.totalFormat,
                                     haycupon = tipoOrden.haycupon,
                                     cupon = tipoOrden.mensajeCupon,
-                                    haypremio = tipoOrden.haypremio,
-                                    premio = tipoOrden.textopremio,
                                     cliente = tipoOrden.cliente,
                                     direccion = tipoOrden.direccion,
                                     referencia = tipoOrden.referencia,
@@ -318,13 +361,18 @@ fun PrincipalScreen(
 
 
             if (showModalCerrarSesion) {
-                CustomModalCerrarSesion(showModalCerrarSesion,
-                    stringResource(R.string.cerrar_sesion),
+                com.tatanstudios.astropollococina.componentes.CustomModal2Botones(
+                    showDialog = true,
+                    titulo = "¿Cerrar sesión?",
+                    message = "Tendrás que ingresar de nuevo con tu usuario y contraseña.",
+                    txtBtnAceptar = "Cerrar sesión",
+                    txtBtnCancelar = "Cancelar",
+                    colorAceptar = com.tatanstudios.astropollococina.componentes.AppColors.rojoOscuro,
                     onDismiss = { showModalCerrarSesion = false },
                     onAccept = {
                         scope.launch {
-                            // Llamamos a deletePreferences de manera segura dentro de una coroutine
-                            tokenManager.deletePreferences()
+                            // revoca el token en la API y borra la sesion local
+                            SesionApi.cerrarSesion()
 
                             // cerrar modal
                             showModalCerrarSesion = false
@@ -334,13 +382,28 @@ fun PrincipalScreen(
                     })
             }
 
+            if (avisoAjustesNotificaciones) {
+                com.tatanstudios.astropollococina.componentes.CustomModal2Botones(
+                    showDialog = true,
+                    titulo = "Para que te lleguen todos los pedidos",
+                    message = "Este teléfono puede dejar de avisarte de pedidos nuevos si pasa tiempo sin abrir la app. Revisa los ajustes de notificaciones (toma un minuto).",
+                    txtBtnAceptar = "Revisar",
+                    txtBtnCancelar = "Ahora no",
+                    onDismiss = { avisoAjustesNotificaciones = false },
+                    onAccept = {
+                        avisoAjustesNotificaciones = false
+                        navController.navigate(Routes.VistaNotificaciones.route) { launchSingleTop = true }
+                    },
+                )
+            }
+
             if (popUsuarioBloqueado) {
                 CustomModal1Boton(
                     popUsuarioBloqueado,
                     stringResource(R.string.usuario_bloqueado),
                     onDismiss = {
                         scope.launch {
-                            tokenManager.deletePreferences()
+                            SesionApi.cerrarSesion()
                             popUsuarioBloqueado = false
                             navigateToLogin(navController)
                         }
@@ -352,14 +415,24 @@ fun PrincipalScreen(
                     popErrorCargar,
                     stringResource(R.string.error_reintentar_de_nuevo),
                     onDismiss = {
+                        popErrorCargar = false // antes no se cerraba nunca
                         scope.launch {
                             viewModel.nuevasOrdenesRetrofit(_idusuario, null)
                         }
                     })
             }
 
-            if (isLoading) {
-                LoadingModal(isLoading = isLoading)
+            // primera carga: skeleton; las actualizaciones automáticas van en silencio
+            if (isLoading && !boolDatosCargados) {
+                Box(Modifier.fillMaxSize().padding(innerPadding).background(com.tatanstudios.astropollococina.componentes.AppColors.crema)) {
+                    com.tatanstudios.astropollococina.componentes.ListaSkeleton(cantidad = 3, alto = 200.dp)
+                }
+            }
+            // sin datos y la carga falló: panel con Reintentar
+            if (!boolDatosCargados) {
+                Box(Modifier.fillMaxSize().padding(innerPadding)) {
+                    com.tatanstudios.astropollococina.componentes.ErrorReintentar(viewModel, isLoading)
+                }
             }
         }
 
@@ -376,6 +449,9 @@ fun PrincipalScreen(
                     // CARGA LA PANTALLA PRINCIPAL
 
                     modeloListaOrdenesNuevasArray = result.lista
+                    result.restaurante?.let { nombreRestaurante = it }
+                    result.usuario?.let { nombreUsuario = it }
+                    result.login?.let { loginUsuario = it }
                     boolDatosCargados = true
                 }
                 else -> {

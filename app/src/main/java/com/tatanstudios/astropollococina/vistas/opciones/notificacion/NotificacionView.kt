@@ -4,208 +4,351 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.PowerManager
+import android.provider.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import com.tatanstudios.astropollococina.extras.TokenManager
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.tatanstudios.astropollococina.R
-import com.tatanstudios.astropollococina.componentes.BarraToolbarColor
-import com.tatanstudios.astropollococina.viewmodel.NotificacionPruebaViewModel
-import com.tatanstudios.astropollococina.vistas.login.getOneSignalUserId
-import android.provider.Settings
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Divider
-import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.tatanstudios.astropollococina.componentes.CustomToasty
-import com.tatanstudios.astropollococina.componentes.LoadingModal
-import com.tatanstudios.astropollococina.componentes.ToastType
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import com.tatanstudios.astropollococina.componentes.AppColors
+import com.tatanstudios.astropollococina.componentes.BarraSuperior
+import com.tatanstudios.astropollococina.componentes.TarjetaBlanca
+import com.tatanstudios.astropollococina.extras.Notificaciones
+import com.tatanstudios.astropollococina.extras.TokenManager
+import com.tatanstudios.astropollococina.viewmodel.NotificacionPruebaViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
-
+/**
+ * Revisa que este teléfono reciba los avisos de órdenes nuevas:
+ * permiso, segundo plano y que esté vinculado en OneSignal con el usuario (External ID).
+ */
 @Composable
 fun NotificacionScreen(
     navController: NavHostController,
     viewModel: NotificacionPruebaViewModel = viewModel()
 ) {
     val ctx = LocalContext.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-    keyboardController?.hide()
-
-    var _idusuario by remember { mutableStateOf("") }
-    var _idonesignal by remember { mutableStateOf("") }
-    val isIgnoringOptimizations = remember { mutableStateOf(false) }
-    val isLoading by viewModel.isLoading.observeAsState(true)
-    val resultado by viewModel.resultado.observeAsState()
-    val tokenManager = remember { TokenManager(ctx) }
-    val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
-
     val lifecycleOwner = LocalLifecycleOwner.current
-    val powerManager = ctx.getSystemService(Context.POWER_SERVICE) as PowerManager
+    val tokenManager = remember { TokenManager(ctx) }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                isIgnoringOptimizations.value = powerManager.isIgnoringBatteryOptimizations(ctx.packageName)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
+    var idusuario by remember { mutableStateOf("") }
+    var estado by remember { mutableStateOf(Notificaciones.estado(ctx, "")) }
+    var sinOptimizacion by remember { mutableStateOf(isIgnoringBatteryOptimizations(ctx)) }
+    var sinPausa by remember { mutableStateOf(Notificaciones.sinPausaPorInactividad(ctx)) }
+    val fabricante = remember { Notificaciones.fabricanteRestrictivo() }
+    // resultado de la prueba: (ok, mensaje)
+    var resultadoPrueba by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
 
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+    val isLoading by viewModel.isLoading.observeAsState(false)
+    val resultado by viewModel.resultado.observeAsState()
+    val errorEnvio by viewModel.error.observeAsState()
+
+    fun actualizar() {
+        estado = Notificaciones.estado(ctx, idusuario)
+        sinOptimizacion = isIgnoringBatteryOptimizations(ctx)
+        sinPausa = Notificaciones.sinPausaPorInactividad(ctx)
     }
 
     LaunchedEffect(Unit) {
-        isIgnoringOptimizations.value = isIgnoringBatteryOptimizations(ctx)
-
-
-            _idusuario = tokenManager.idUsuario.first()
-            _idonesignal = getOneSignalUserId()
-
+        idusuario = tokenManager.idUsuario.first()
+        Notificaciones.vincular(idusuario)
+        // OneSignal confirma el registro en segundo plano: revisar unas veces
+        repeat(5) {
+            actualizar()
+            if (estado.vinculado && estado.registrado) return@LaunchedEffect
+            delay(1500)
+        }
     }
 
-    Scaffold(
-        topBar = {
-            BarraToolbarColor(
-                navController,
-                stringResource(R.string.historial),
-                colorResource(R.color.colorRojo),
-            )
+    // al volver de Ajustes se revisa de nuevo
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) actualizar()
         }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(errorEnvio) {
+        errorEnvio?.getContentIfNotHandled()?.let {
+            resultadoPrueba = false to "No se pudo conectar con el servidor. Revisa tu internet."
+        }
+    }
+
+    val todoBien = estado.permiso && estado.vinculado && estado.registrado && sinOptimizacion && sinPausa
+
+    Scaffold(
+        containerColor = AppColors.crema,
+        topBar = { BarraSuperior(titulo = "Notificaciones", onAtras = { navController.popBackStack() }) }
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
+            // resumen
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(scrollState)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (todoBien) AppColors.verdeFondo else AppColors.ambarFondo)
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-
-
-                Text(
-                    text = stringResource(R.string.recibir_notificacion),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Black,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                Icon(
+                    if (todoBien) Icons.Filled.CheckCircle else Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = if (todoBien) AppColors.verde else AppColors.ambar,
+                    modifier = Modifier.size(28.dp)
                 )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (todoBien) "Este teléfono recibe los avisos" else "Revisa los puntos marcados en rojo",
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (todoBien) AppColors.verde else AppColors.ambar
+                    )
+                    Text(
+                        "Con todo en verde, los pedidos llegan aunque no abras la app en días, como en WhatsApp.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppColors.grisTexto
+                    )
+                }
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
+            FilaRevision(
+                ok = estado.permiso,
+                titulo = "Permiso de notificaciones",
+                textoOk = "Permitido",
+                textoMal = "Están bloqueadas. Actívalas para recibir las órdenes.",
+                textoBoton = "Activar",
+                onArreglar = { abrirAjustesNotificaciones(ctx) }
+            )
 
+            FilaRevision(
+                ok = estado.vinculado && estado.registrado,
+                titulo = "Registrado para recibir avisos",
+                textoOk = "Vinculado a tu usuario",
+                textoMal = when {
+                    !estado.vinculado -> "Este teléfono no está vinculado a tu usuario."
+                    estado.suscripcionId.isBlank() -> "Todavía no se registra. Revisa tu internet."
+                    else -> "El teléfono no acepta notificaciones. Revisa el permiso."
+                },
+                textoBoton = "Registrar",
+                onArreglar = {
+                    Notificaciones.vincular(idusuario)
+                    actualizar()
+                }
+            )
+
+            FilaRevision(
+                ok = sinOptimizacion,
+                titulo = "Funcionar en segundo plano",
+                textoOk = "Sin restricción de batería",
+                textoMal = "El ahorro de batería puede retrasar o bloquear los avisos.",
+                textoBoton = "Permitir",
+                onArreglar = { Notificaciones.pedirSinOptimizacionBateria(ctx) }
+            )
+
+            FilaRevision(
+                ok = sinPausa,
+                titulo = "No pausar si no se usa",
+                textoOk = "Android no pausará la app aunque pasen días sin abrirla",
+                textoMal = "Si pasan días sin abrir la app, Android la pausa y deja de entregar los avisos. Desactiva «Pausar actividad si no se usa».",
+                textoBoton = "Desactivar",
+                onArreglar = { Notificaciones.abrirPausaPorInactividad(ctx) }
+            )
+
+            // marcas que cierran apps por su cuenta: no se puede comprobar, solo guiar
+            if (fabricante != null) {
+                TarjetaBlanca {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(AppColors.ambarFondo),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Warning, contentDescription = null, tint = AppColors.ambar, modifier = Modifier.size(24.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Ajuste de $fabricante", fontWeight = FontWeight.SemiBold, color = AppColors.letraPrincipal)
+                            Text(
+                                "Estos teléfonos cierran apps por su cuenta. Activa «Inicio automático» y en batería elige «Sin restricciones» para Astro Restaurante. No la cierres deslizándola desde las apps recientes.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AppColors.grisTexto
+                            )
+                        }
+                    }
+                    TextButton(onClick = { Notificaciones.abrirAjustesFabricante(ctx) }, modifier = Modifier.align(Alignment.End)) {
+                        Text("Abrir ajustes", color = AppColors.rojo, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            TarjetaBlanca {
+                Text("Enviar notificación de prueba", fontWeight = FontWeight.SemiBold, color = AppColors.letraPrincipal)
+                Text(
+                    "El servidor te enviará un aviso a este teléfono. Debería llegarte en unos segundos.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.grisIcono
+                )
+                Spacer(Modifier.height(4.dp))
                 Button(
                     onClick = {
-                        viewModel.enviarNotificacionRetrofit(_idusuario, _idonesignal)
+                        if (!isLoading) {
+                            resultadoPrueba = null
+                            Notificaciones.vincular(idusuario)
+                            viewModel.enviarNotificacionRetrofit(idusuario)
+                        }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = R.color.colorVerde)),
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.rojo, contentColor = Color.White),
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
                 ) {
-                    Text(stringResource(R.string.enviar))
-                }
-
-                Spacer(modifier = Modifier.height(15.dp))
-
-                Divider(
-                    color = Color.LightGray, // Puedes personalizar el color
-                    thickness = 1.dp         // O el grosor
-                )
-
-                Spacer(modifier = Modifier.height(15.dp))
-
-                if (!isIgnoringOptimizations.value) {
-                    Text(
-                        text = stringResource(R.string.para_recibir_notificaciones_siempre),
-                        color = Color.Red,
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    Button(
-                        onClick = {
-                            requestBatteryOptimizationPermission(ctx)
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.permitir_notificacion_permantente))
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Text("Enviando...", fontWeight = FontWeight.SemiBold)
+                    } else {
+                        Icon(Icons.Filled.NotificationsActive, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Enviar prueba", fontWeight = FontWeight.SemiBold)
                     }
-                } else {
-                    Text(
-                        text = stringResource(R.string.optimizacion_bateria_desactivada),
-                        color = Color.Black,
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                }
+                resultadoPrueba?.let { (ok, msg) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (ok) AppColors.verdeFondo else AppColors.rojoFondo)
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            if (ok) Icons.Filled.CheckCircle else Icons.Filled.ErrorOutline,
+                            contentDescription = null,
+                            tint = if (ok) AppColors.verde else AppColors.rojoOscuro,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(msg, style = MaterialTheme.typography.bodyMedium, color = if (ok) AppColors.verde else AppColors.rojoOscuro)
+                    }
+                }
+            }
+
+            // datos para soporte
+            Text(
+                "Identificador: ${estado.externalId.ifBlank { "sin vincular" }}\n" +
+                    "Suscripción: ${estado.suscripcionId.ifBlank { "sin registrar" }}",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.grisIcono,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
+    }
+
+    resultado?.getContentIfNotHandled()?.let { result ->
+        resultadoPrueba = when (result.success) {
+            1 -> true to "Enviada. Si no te llega en un minuto, revisa los puntos de arriba."
+            2 -> false to (result.mensaje ?: "Este teléfono todavía no está registrado para recibir avisos.")
+            3 -> false to (result.mensaje ?: "El servidor no pudo enviar la notificación.")
+            else -> false to "No se pudo enviar. Inténtalo de nuevo."
+        }
+    }
+}
+
+@Composable
+private fun FilaRevision(
+    ok: Boolean,
+    titulo: String,
+    textoOk: String,
+    textoMal: String,
+    textoBoton: String?,
+    onArreglar: () -> Unit,
+) {
+    TarjetaBlanca {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(if (ok) AppColors.verdeFondo else AppColors.rojoFondo),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (ok) Icons.Filled.CheckCircle else Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = if (ok) AppColors.verde else AppColors.rojoOscuro,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(titulo, fontWeight = FontWeight.SemiBold, color = AppColors.letraPrincipal)
+                Text(
+                    if (ok) textoOk else textoMal,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (ok) AppColors.verde else AppColors.rojoOscuro
+                )
+            }
+            if (!ok && textoBoton != null) {
+                TextButton(onClick = onArreglar) {
+                    Text(textoBoton, color = AppColors.rojo, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
-
-
-        if (isLoading) {
-            LoadingModal(isLoading = true)
-        }
-
-        resultado?.getContentIfNotHandled()?.let { result ->
-            when (result.success) {
-                1 -> {
-
-                    CustomToasty(
-                        ctx,
-                        stringResource(id = R.string.notificacion_enviada),
-                        ToastType.SUCCESS
-                    )
-
-                }
-                else -> {
-                    CustomToasty(
-                        ctx,
-                        stringResource(id = R.string.error_reintentar_de_nuevo),
-                        ToastType.ERROR
-                    )
-                }
-            }
-        }
-
-    } // end-scalfold
+    }
 }
 
 fun isIgnoringBatteryOptimizations(context: Context): Boolean {
@@ -216,6 +359,13 @@ fun isIgnoringBatteryOptimizations(context: Context): Boolean {
 fun requestBatteryOptimizationPermission(context: Context) {
     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
         data = Uri.parse("package:${context.packageName}")
+    }
+    context.startActivity(intent)
+}
+
+fun abrirAjustesNotificaciones(context: Context) {
+    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
     }
     context.startActivity(intent)
 }

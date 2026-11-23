@@ -3,6 +3,7 @@ package com.tatanstudios.astropollococina.componentes
 import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -219,39 +230,72 @@ fun BloqueTextFieldPassword(
 @Composable
 fun CustomModal1Boton(showDialog: Boolean, message: String, onDismiss: () -> Unit) {
     if (showDialog) {
-        Dialog(onDismissRequest = {}) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth() // Ajusta el ancho al 80% de la pantalla
-                    .background(Color.White, shape = RoundedCornerShape(16.dp))
-                    .padding(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(4.dp), // Agrega padding alrededor del contenido
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = message,
-                        fontSize = 18.sp,
-                        color = colorResource(R.color.colorNegro),
-                        modifier = Modifier.padding(bottom = 16.dp) // Espacio entre el texto y el botón
-                    )
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colorResource(R.color.colorAzul),
-                            contentColor = colorResource(R.color.colorBlanco),
-                        ),
-                    ) {
-                        Text(text = stringResource(id = R.string.aceptar))
-                    }
-                }
-            }
+        DialogoBase(titulo = null, mensaje = message, icono = Icons.Filled.Info, colorIcono = AppColors.letraPrincipal) {
+            BotonDialogo("Aceptar", AppColors.rojo, Modifier.fillMaxWidth(), onDismiss)
         }
     }
 }
+
+/** Base comun de los avisos: tarjeta blanca redondeada, icono en circulo, titulo y mensaje. */
+@Composable
+fun DialogoBase(
+    titulo: String?,
+    mensaje: String,
+    icono: androidx.compose.ui.graphics.vector.ImageVector,
+    colorIcono: Color,
+    botones: @Composable () -> Unit,
+) {
+    Dialog(onDismissRequest = {}) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, shape = RoundedCornerShape(22.dp))
+                .padding(horizontal = 22.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(colorIcono.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(34.dp))
+            }
+            Spacer(Modifier.height(14.dp))
+            if (!titulo.isNullOrBlank()) {
+                Text(
+                    titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.letraPrincipal,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(6.dp))
+            }
+            Text(
+                mensaje,
+                style = if (titulo.isNullOrBlank()) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                fontWeight = if (titulo.isNullOrBlank()) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (titulo.isNullOrBlank()) AppColors.letraPrincipal else AppColors.grisIcono,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(22.dp))
+            botones()
+        }
+    }
+}
+
+@Composable
+fun BotonDialogo(texto: String, color: Color, modifier: Modifier, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
+        modifier = modifier.height(48.dp)
+    ) { Text(texto, fontWeight = FontWeight.SemiBold) }
+}
+
 
 @Composable
 fun CustomModal1BotonTitulo(
@@ -261,51 +305,12 @@ fun CustomModal1BotonTitulo(
     onDismiss: () -> Unit
 ) {
     if (showDialog) {
-        Dialog(onDismissRequest = {}) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, shape = RoundedCornerShape(16.dp))
-                    .padding(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    // Título
-                    Text(
-                        text = title,
-                        fontSize = 20.sp,
-                        color = colorResource(R.color.colorNegro),
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    // Mensaje
-                    Text(
-                        text = message,
-                        fontSize = 16.sp,
-                        color = colorResource(R.color.colorNegro),
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    // Botón
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colorResource(R.color.colorAzul),
-                            contentColor = colorResource(R.color.colorBlanco),
-                        ),
-                    ) {
-                        Text(text = stringResource(id = R.string.aceptar))
-                    }
-                }
-            }
+        DialogoBase(titulo = title, mensaje = message, icono = Icons.Filled.Info, colorIcono = AppColors.letraPrincipal) {
+            BotonDialogo("Aceptar", AppColors.rojo, Modifier.fillMaxWidth(), onDismiss)
         }
     }
 }
+
 
 
 
@@ -313,28 +318,20 @@ fun CustomModal1BotonTitulo(
 fun LoadingModal(isLoading: Boolean, titulo:String = "Cargando...") {
     if (isLoading) {
         Dialog(onDismissRequest = { /* Evitar que se cierre el modal */ }) {
-            Box(
-                contentAlignment = Alignment.Center,
+            Row(
                 modifier = Modifier
-                    .size(160.dp)
-                    .background(Color.White, shape = RoundedCornerShape(16.dp))
+                    .background(Color.White, shape = RoundedCornerShape(18.dp))
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator(color = colorResource(R.color.colorAzul))
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = titulo,
-                        fontSize = 18.sp,
-                        color = colorResource(R.color.colorNegro)
-                    )
-                }
+                CircularProgressIndicator(color = AppColors.rojo, strokeWidth = 3.dp, modifier = Modifier.size(28.dp))
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(titulo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = AppColors.letraPrincipal)
             }
         }
     }
 }
+
 
 enum class ToastType {
     SUCCESS,
@@ -490,8 +487,6 @@ fun CardNuevaOrden(
     venta: String,
     haycupon: Int,
     cupon: String?,
-    haypremio: Int,
-    premio: String?,
     cliente: String,
     direccion: String,
     referencia: String?,
@@ -499,38 +494,34 @@ fun CardNuevaOrden(
     nota: String?,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .padding(8.dp)
-            .fillMaxWidth()
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            CampoTexto(stringResource(R.string.orden_numeral), orden)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.fecha), fecha)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.venta), venta)
+    TarjetaBlanca(onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Orden #$orden",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.letraPrincipal,
+                modifier = Modifier.weight(1f)
+            )
+            Chip("Nueva", AppColors.ambarFondo, AppColors.ambar)
+        }
+        DatoConIcono(androidx.compose.material.icons.Icons.Filled.CalendarMonth, fecha)
+        DatoConIcono(androidx.compose.material.icons.Icons.Filled.Person, cliente, AppColors.letraPrincipal)
+        if (!telefono.isNullOrBlank()) DatoConIcono(androidx.compose.material.icons.Icons.Filled.Phone, telefono)
+        DatoConIcono(androidx.compose.material.icons.Icons.Filled.LocationOn, direccion)
+        if (!referencia.isNullOrBlank()) DatoConIcono(androidx.compose.material.icons.Icons.Filled.Place, "Referencia: $referencia")
+        if (!nota.isNullOrBlank()) DatoConIcono(androidx.compose.material.icons.Icons.Filled.EditNote, "Nota: $nota", AppColors.rojoOscuro)
+        if (haycupon == 1 && !cupon.isNullOrBlank()) Chip("Cupón: $cupon", AppColors.verdeFondo, AppColors.verde)
 
-            if (haycupon == 1){
-                Spacer(modifier = Modifier.height(6.dp))
-                CampoTexto(stringResource(R.string.cupon), cupon, colorResource(R.color.colorRojo)) }
-            if (haypremio == 1){
-                Spacer(modifier = Modifier.height(6.dp))
-                CampoTexto(stringResource(R.string.premio), premio, colorResource(R.color.colorRojo))
+        androidx.compose.material3.HorizontalDivider(color = AppColors.grisSuave)
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Total", style = MaterialTheme.typography.labelMedium, color = AppColors.grisIcono)
+                Text(venta, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = AppColors.rojo)
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.cliente), cliente)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.direccion), direccion)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.referencia), referencia)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.telefono), telefono)
-            if (!nota.isNullOrBlank()) CampoTexto(stringResource(R.string.nota), nota)
+            Text("Ver orden", color = AppColors.rojo, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = AppColors.rojo)
         }
     }
 }
@@ -564,63 +555,26 @@ fun CustomModal2Botones(
     onDismiss: () -> Unit,
     onAccept: () -> Unit,
     txtBtnAceptar: String,
-    txtBtnCancelar: String
+    txtBtnCancelar: String,
+    colorAceptar: Color = AppColors.rojo,
+    titulo: String? = null,
 ) {
     if (showDialog) {
-        Dialog(onDismissRequest = { }) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Color.White,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    .padding(16.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = message,
-                        fontSize = 17.sp,
-                        color = colorResource(R.color.colorNegro),
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Botón Cancelar (Gris claro)
-                        Button(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colorResource(R.color.colorGrisv2),
-                                contentColor = Color.White
-                            )
-                        ) {
-                            Text(txtBtnCancelar)
-                        }
-
-                        // Botón Aceptar (Verde)
-                        Button(
-                            onClick = onAccept,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colorResource(R.color.colorVerde), // Verde
-                                contentColor = Color.White
-                            )
-                        ) {
-                            Text(txtBtnAceptar)
-                        }
-                    }
-                }
+        DialogoBase(titulo = titulo, mensaje = message, icono = Icons.AutoMirrored.Filled.HelpOutline, colorIcono = colorAceptar) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onDismiss,
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD0D0D0)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.grisTexto),
+                    modifier = Modifier.weight(1f).height(48.dp)
+                ) { Text(txtBtnCancelar, fontWeight = FontWeight.SemiBold) }
+                BotonDialogo(txtBtnAceptar, colorAceptar, Modifier.weight(1f), onAccept)
             }
         }
     }
 }
+
 
 
 
@@ -633,148 +587,104 @@ fun ProductoItemCard(
     descripcion: String?, // lo que el cliente escribe ejemplo (pollo, res)
     precio: String,
     modifier: Modifier = Modifier,
+    opciones: List<String> = emptyList(), // modificadores elegidos por el cliente
     onClick: () -> Unit = {}
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
             .clickable { onClick() },
-    shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
             modifier = Modifier
                 .padding(12.dp)
                 .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
-            // Cantidad
-            Box(
-                modifier = Modifier
-                    .background(color = colorResource(R.color.colorAzul), shape = RoundedCornerShape(6.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "${cantidad}x",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.width(5.dp))
-
-            // Imagen del producto desde URL
-            if(hayImagen == 1){
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(imagenUrl)
-                        .crossfade(true)
-                        .placeholder(R.drawable.spinloading)
-                        .error(R.drawable.camaradefecto)
-                        .build(),
-                    contentDescription = stringResource(R.string.imagen_por_defecto),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                )
-            }else{
-                Image(
-                    painter = painterResource(id = R.drawable.camaradefecto),
-                    contentDescription = stringResource(R.string.imagen_por_defecto),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                )
-            }
-
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Título y descripción
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = titulo?: "",
-                    style = MaterialTheme.typography.titleMedium,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if(!descripcion.isNullOrBlank()){
-                    Text(
-                        text = descripcion?: "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Red,
-                        fontSize = 16.sp,
-                        overflow = TextOverflow.Ellipsis
+            Box {
+                if (hayImagen == 1) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(imagenUrl)
+                            .crossfade(true)
+                            .placeholder(R.drawable.spinloading)
+                            .error(R.drawable.camaradefecto)
+                            .build(),
+                        contentDescription = stringResource(R.string.imagen_por_defecto),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White)
+                            .border(1.dp, AppColors.grisSuave, RoundedCornerShape(12.dp))
+                            .padding(3.dp)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.camaradefecto),
+                        contentDescription = stringResource(R.string.imagen_por_defecto),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White)
+                            .border(1.dp, AppColors.grisSuave, RoundedCornerShape(12.dp))
+                            .padding(3.dp)
                     )
                 }
             }
 
-            // Precio
-            Text(
-                text = precio,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
-    }
-}
+            Spacer(modifier = Modifier.width(12.dp))
 
-
-
-@Composable
-fun CardPreparacionOrden(
-    orden: String,
-    fecha: String,
-    venta: String,
-    haycupon: Int,
-    cupon: String?,
-    haypremio: Int,
-    premio: String?,
-    cliente: String,
-    direccion: String,
-    referencia: String?,
-    telefono: String?,
-    nota: String?,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .padding(8.dp)
-            .fillMaxWidth()
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            CampoTexto(stringResource(R.string.orden_numeral), orden)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.fecha), fecha)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.venta), venta)
-
-            if (haycupon == 1){
-                Spacer(modifier = Modifier.height(6.dp))
-                CampoTexto(stringResource(R.string.cupon), cupon, colorResource(R.color.colorRojo)) }
-            if (haypremio == 1){
-                Spacer(modifier = Modifier.height(6.dp))
-                CampoTexto(stringResource(R.string.premio), premio, colorResource(R.color.colorRojo))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // cantidad bien visible para la cocina
+                    Text(
+                        "${cantidad}x",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(AppColors.rojo)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = titulo ?: "",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppColors.letraPrincipal,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                LineasOpcionesCocina(opciones)
+                if (!descripcion.isNullOrBlank()) {
+                    Text(
+                        text = "Nota: $descripcion",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = AppColors.rojoOscuro
+                    )
+                }
+                Text(
+                    text = precio,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = AppColors.grisTexto
+                )
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.cliente), cliente)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.direccion), direccion)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.referencia), referencia)
-            Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.telefono), telefono)
-            if (!nota.isNullOrBlank()) CampoTexto(stringResource(R.string.nota), nota)
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = AppColors.grisIcono,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
         }
     }
 }
@@ -789,8 +699,6 @@ fun CardCompletadasOrden(
     venta: String,
     haycupon: Int,
     cupon: String?,
-    haypremio: Int,
-    premio: String?,
     cliente: String,
     direccion: String,
     referencia: String?,
@@ -812,18 +720,13 @@ fun CardCompletadasOrden(
             Spacer(modifier = Modifier.height(6.dp))
             CampoTexto(stringResource(R.string.fecha), fecha)
             Spacer(modifier = Modifier.height(6.dp))
-            CampoTexto(stringResource(R.string.finalizo), fechaFinalizo)
+            CampoTexto(stringResource(R.string.finalizo), fechaFinalizo) // hora en que se inicio
             Spacer(modifier = Modifier.height(6.dp))
             CampoTexto(stringResource(R.string.venta), venta)
 
             if (haycupon == 1){
                 Spacer(modifier = Modifier.height(6.dp))
                 CampoTexto(stringResource(R.string.cupon), cupon, colorResource(R.color.colorRojo)) }
-            if (haypremio == 1){
-                Spacer(modifier = Modifier.height(6.dp))
-                CampoTexto(stringResource(R.string.premio), premio, colorResource(R.color.colorRojo))
-            }
-
             Spacer(modifier = Modifier.height(6.dp))
             CampoTexto(stringResource(R.string.cliente), cliente)
             Spacer(modifier = Modifier.height(6.dp))
@@ -847,8 +750,6 @@ fun CardCanceladasOrden(
     venta: String,
     haycupon: Int,
     cupon: String?,
-    haypremio: Int,
-    premio: String?,
     cliente: String,
     direccion: String,
     referencia: String?,
@@ -877,11 +778,6 @@ fun CardCanceladasOrden(
             if (haycupon == 1){
                 Spacer(modifier = Modifier.height(6.dp))
                 CampoTexto(stringResource(R.string.cupon), cupon, colorResource(R.color.colorRojo)) }
-            if (haypremio == 1){
-                Spacer(modifier = Modifier.height(6.dp))
-                CampoTexto(stringResource(R.string.premio), premio, colorResource(R.color.colorRojo))
-            }
-
             Spacer(modifier = Modifier.height(6.dp))
             CampoTexto(stringResource(R.string.cliente), cliente)
             Spacer(modifier = Modifier.height(6.dp))
@@ -1099,8 +995,6 @@ fun CardHistorialOrden(
     estado: String?,
     haycupon: Int,
     cupon: String?,
-    haypremio: Int,
-    premio: String?, // textopremio
     cliente: String,
     direccion: String,
     telefono: String?,
@@ -1127,11 +1021,6 @@ fun CardHistorialOrden(
             if (haycupon == 1){
                 Spacer(modifier = Modifier.height(6.dp))
                 CampoTexto(stringResource(R.string.cupon), cupon, colorResource(R.color.colorRojo)) }
-            if (haypremio == 1){
-                Spacer(modifier = Modifier.height(6.dp))
-                CampoTexto(stringResource(R.string.premio), premio, colorResource(R.color.colorRojo))
-            }
-
             Spacer(modifier = Modifier.height(6.dp))
             CampoTexto(stringResource(R.string.cliente), cliente)
             Spacer(modifier = Modifier.height(6.dp))
@@ -1156,6 +1045,7 @@ fun ProductoListadoHistorialItemCard(
   descripcion: String?, // lo que el cliente escribe ejemplo (pollo, res)
   precio: String,
   modifier: Modifier = Modifier,
+  opciones: List<String> = emptyList(), // modificadores elegidos por el cliente
   onClick: () -> Unit = {}
 ) {
     Card(
@@ -1226,6 +1116,7 @@ fun ProductoListadoHistorialItemCard(
                     style = MaterialTheme.typography.titleMedium,
                     overflow = TextOverflow.Ellipsis
                 )
+                LineasOpcionesCocina(opciones)
                 if(!descripcion.isNullOrBlank()){
                     Text(
                         text = descripcion?: "",
@@ -1243,6 +1134,36 @@ fun ProductoListadoHistorialItemCard(
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+    }
+}
+
+
+/**
+ * Opciones que eligió el cliente (modificadores), una línea por bloque.
+ * ej. "Elegir sabor: Naranja". Se destacan para que cocina no las pase por alto.
+ */
+@Composable
+fun LineasOpcionesCocina(opciones: List<String>) {
+    if (opciones.isEmpty()) return
+    Column(modifier = Modifier.padding(top = 2.dp)) {
+        opciones.forEach { linea ->
+            val partes = linea.split(": ", limit = 2)
+            Text(
+                text = androidx.compose.ui.text.buildAnnotatedString {
+                    append("• ")
+                    if (partes.size == 2) {
+                        pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.SemiBold))
+                        append(partes[0] + ": ")
+                        pop()
+                        append(partes[1])
+                    } else {
+                        append(linea)
+                    }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF0D2C55),
             )
         }
     }

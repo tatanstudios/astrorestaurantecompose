@@ -10,5 +10,9 @@ data class ModeloLogin(
     val id: Int,
 
     @SerializedName("mensaje")
-    val mensaje: String? = null
+    val mensaje: String? = null,
+
+    // token de Sanctum para las demas peticiones
+    @SerializedName("token")
+    val token: String? = null
 )

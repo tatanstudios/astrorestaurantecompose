@@ -1,5 +1,8 @@
 package com.tatanstudios.astropollococina.vistas.login
 
+import com.tatanstudios.astropollococina.componentes.ToastType
+import com.tatanstudios.astropollococina.componentes.CustomToasty
+import com.tatanstudios.astropollococina.extras.SesionApi
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,6 +18,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.first
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -53,8 +59,6 @@ import com.tatanstudios.astropollococina.vistas.opciones.ordencanceladas.Listado
 import com.tatanstudios.astropollococina.vistas.opciones.ordencompletadas.ListadoCompletadasOrdenScreen
 import com.tatanstudios.astropollococina.vistas.opciones.ordenesnuevas.EstadoNuevaOrdenScreen
 import com.tatanstudios.astropollococina.vistas.opciones.ordenesnuevas.InfoProductoScreen
-import com.tatanstudios.astropollococina.vistas.opciones.ordenpreparacion.EstadoPreparacionOrdenScreen
-import com.tatanstudios.astropollococina.vistas.opciones.ordenpreparacion.ListadoPreparacionOrdenScreen
 import com.tatanstudios.astropollococina.vistas.principal.PrincipalScreen
 
 class SplashApp : ComponentActivity() {
@@ -78,10 +82,47 @@ class SplashApp : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val ctxNav = LocalContext.current
+    val tokenManager = remember { TokenManager(ctxNav) }
 
-    NavHost(navController = navController, startDestination = Routes.VistaSplash.route) {
+    // Sin splash: se decide al instante si va al login o a la pantalla principal
+    var inicio by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        tokenManager.migrateFromSharedPreferencesIfNeeded()
+        inicio = when {
+            // sesion de la version anterior (sin token): al login con aviso
+            tokenManager.limpiarSesionAnteriorSinToken() -> {
+                SesionApi.avisoIniciarSesionDeNuevo = true
+                Routes.VistaLogin.route
+            }
+            tokenManager.idUsuario.first().isNotEmpty() -> {
+                com.tatanstudios.astropollococina.extras.Notificaciones.vincular(tokenManager.idUsuario.first())
+                Routes.VistaPrincipal.route
+            }
+            else -> Routes.VistaLogin.route
+        }
+    }
 
-        composable(Routes.VistaSplash.route) { SplashScreen(navController) }
+    val destinoInicial = inicio
+    if (destinoInicial == null) {
+        // solo dura lo que tarda en leer la sesion guardada (milisegundos)
+        Box(Modifier.fillMaxSize().background(Color(0xFFFFFFF4)))
+        return
+    }
+
+    // la API rechazo el token (contrasena cambiada o usuario bloqueado desde el panel)
+    LaunchedEffect(Unit) {
+        SesionApi.sesionExpirada.collect {
+            CustomToasty(ctxNav, "Tu sesión terminó, inicia sesión de nuevo", ToastType.INFO)
+            navController.navigate(Routes.VistaLogin.route) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
+    NavHost(navController = navController, startDestination = destinoInicial) {
+
         composable(Routes.VistaLogin.route) { LoginScreen(navController) }
 
         composable(Routes.VistaPrincipal.route) { PrincipalScreen(navController) }
@@ -102,18 +143,7 @@ fun AppNavigation() {
             InfoProductoScreen(navController = navController, _idproducto = idproducto)
         }
 
-        // LISTADO DE ORDENES EN PREPARACION
-        composable(Routes.VistaListadoOrdenPreparacion.route) { ListadoPreparacionOrdenScreen(navController) }
-
-        // Cuando se Toca la Card de preparacion ordenes
-        composable(Routes.VistaEstadoPreparacionOrden.route) { backStackEntry ->
-            val idordenStr = backStackEntry.arguments?.getString("idorden") ?: "0"
-            val idorden = idordenStr.toIntOrNull() ?: 0
-
-            EstadoPreparacionOrdenScreen(navController = navController, _idorden = idorden)
-        }
-
-        // LISTADO DE ORDENES COMPLETADAS HOY
+        // LISTADO DE ORDENES INICIADAS HOY
         composable(Routes.VistaListadoOrdenCompletadas.route) { ListadoCompletadasOrdenScreen(navController) }
 
 
@@ -167,93 +197,4 @@ fun AppNavigation() {
 
 
     }
-}
-
-@Composable
-fun SplashScreen(navController: NavHostController) {
-    val ctx = LocalContext.current
-    val tokenManager = remember { TokenManager(ctx) }
-
-    // Ejecutar la migración desde SharedPreferences solo una vez
-    LaunchedEffect(Unit) {
-        tokenManager.migrateFromSharedPreferencesIfNeeded()
-    }
-
-    val idusuario by tokenManager.idUsuario.collectAsState(initial = "")
-
-    // Evitar que el usuario vuelva al splash con el botón atrás
-    DisposableEffect(Unit) {
-        onDispose {
-            navController.popBackStack(Routes.VistaSplash.route, true)
-        }
-    }
-
-    // Control de la navegación tras un retraso
-    LaunchedEffect(idusuario) {
-        delay(2000)
-
-        if (idusuario.isNotEmpty()) {
-            navController.navigate(Routes.VistaPrincipal.route) {
-                popUpTo(Routes.VistaSplash.route) { inclusive = true }
-            }
-        } else {
-            navController.navigate(Routes.VistaLogin.route) {
-                popUpTo(Routes.VistaSplash.route) { inclusive = true }
-            }
-        }
-    }
-
-    // Animación y diseño
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.jsoncocina))
-    val progress by animateLottieCompositionAsState(
-        composition = composition,
-        iterations = LottieConstants.IterateForever
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(color = Color(0xFFD84B4B)),
-        contentAlignment = Alignment.Center
-    ) {
-        LottieAnimation(
-            composition = composition,
-            progress = { progress },
-            modifier = Modifier
-                .height(225.dp)
-                .align(Alignment.Center)
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomStart)
-                .padding(bottom = 36.dp, start = 8.dp, end = 12.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Text(
-                text = stringResource(id = R.string.app_name),
-                fontSize = 22.sp,
-                color = Color.White,
-                fontFamily = FontFamily(Font(R.font.montserratmedium)),
-                modifier = Modifier.weight(1f)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Image(
-                painter = painterResource(id = R.drawable.hamburguesa),
-                contentDescription = stringResource(id = R.string.logotipo),
-                modifier = Modifier
-                    .size(width = 120.dp, height = 100.dp)
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewSplashScreen() {
-    val navController = rememberNavController()
-    SplashScreen(navController = navController)
 }

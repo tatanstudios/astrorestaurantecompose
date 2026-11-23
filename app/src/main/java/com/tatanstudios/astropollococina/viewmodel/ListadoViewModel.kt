@@ -13,7 +13,6 @@ import com.tatanstudios.astropollococina.model.ordenes.ModeloListaProductoCatego
 import com.tatanstudios.astropollococina.model.ordenes.ModeloNuevasOrdenes
 import com.tatanstudios.astropollococina.model.ordenes.ModeloOrdenesCanceladas
 import com.tatanstudios.astropollococina.model.ordenes.ModeloOrdenesCompletadas
-import com.tatanstudios.astropollococina.model.ordenes.ModeloOrdenesPreparacion
 import com.tatanstudios.astropollococina.model.ordenes.ModeloProductoHistorialOrdenes
 import com.tatanstudios.astropollococina.model.ordenes.ModeloProductoOrdenes
 import com.tatanstudios.astropollococina.network.RetrofitBuilder
@@ -35,6 +34,10 @@ class LoginViewModel : ViewModel() {
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> get() = _isLoading
 
+    // se emite una vez cuando la peticion falla (sin internet o error del servidor)
+    private val _errorRed = MutableLiveData<Event<Unit>>()
+    val errorRed: LiveData<Event<Unit>> get() = _errorRed
+
     private var disposable: Disposable? = null
     private var isRequestInProgress = false
 
@@ -55,7 +58,7 @@ class LoginViewModel : ViewModel() {
         _isLoading.value = true
 
         // EL DEVICE IDENTIFICA QUE ESTOY MANDANDO SOLICITUD DESDE ANDROID
-        disposable = RetrofitBuilder.getApiService().verificarUsuarioPassword(_usuario.value!!, _password.value!!, idonesignal)
+        disposable = RetrofitBuilder.getApiService().verificarUsuarioPassword(_usuario.value.orEmpty().trim(), _password.value.orEmpty(), null)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
@@ -67,6 +70,7 @@ class LoginViewModel : ViewModel() {
                 { error ->
                     _isLoading.value = false
                     isRequestInProgress = false
+                    _errorRed.value = Event(Unit)
                 }
             )
     }
@@ -80,7 +84,7 @@ class LoginViewModel : ViewModel() {
 
 
 
-class NuevasOrdenesViewModel() : ViewModel() {
+class NuevasOrdenesViewModel() : CargaViewModel() {
 
     private val _resultado = MutableLiveData<Event<ModeloNuevasOrdenes>>()
     val resultado: LiveData<Event<ModeloNuevasOrdenes>> get() = _resultado
@@ -93,14 +97,15 @@ class NuevasOrdenesViewModel() : ViewModel() {
 
     fun nuevasOrdenesRetrofit(idusuario: String, idfirebase: String?) {
         if (isRequestInProgress) return
+        prepararCarga { nuevasOrdenesRetrofit(idusuario, idfirebase) }
 
         isRequestInProgress = true
 
         _isLoading.value = true
-        disposable = RetrofitBuilder.getApiService().listadoNuevasOrdenas(idusuario, idfirebase)
+        disposable = RetrofitBuilder.getApiService().listadoNuevasOrdenas(idusuario, null)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
+            .retry(2, RetrofitBuilder.reintentar)
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -108,6 +113,7 @@ class NuevasOrdenesViewModel() : ViewModel() {
                     isRequestInProgress = false
                 },
                 { error ->
+                    marcarError()
                     _isLoading.value = false
                     isRequestInProgress = false
                 }
@@ -128,6 +134,10 @@ class CancelarOrdenViewModel() : ViewModel() {
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> get() = _isLoading
 
+    // Se emite una vez cuando la peticion falla (red o servidor)
+    private val _error = MutableLiveData<Event<Unit>>()
+    val error: LiveData<Event<Unit>> get() = _error
+
     private var disposable: Disposable? = null
     private var isRequestInProgress = false
 
@@ -140,7 +150,6 @@ class CancelarOrdenViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().cancelarOrden(idorden, notaCancelar)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -149,6 +158,7 @@ class CancelarOrdenViewModel() : ViewModel() {
                 },
                 { error ->
                     _isLoading.value = false
+                    _error.value = Event(Unit)
                     isRequestInProgress = false
                 }
             )
@@ -170,6 +180,10 @@ class IniciarOrdenViewModel() : ViewModel() {
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> get() = _isLoading
 
+    // Se emite una vez cuando la peticion falla (red o servidor)
+    private val _error = MutableLiveData<Event<Unit>>()
+    val error: LiveData<Event<Unit>> get() = _error
+
     private var disposable: Disposable? = null
     private var isRequestInProgress = false
 
@@ -182,7 +196,6 @@ class IniciarOrdenViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().iniciarOrden(idorden)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -191,6 +204,7 @@ class IniciarOrdenViewModel() : ViewModel() {
                 },
                 { error ->
                     _isLoading.value = false
+                    _error.value = Event(Unit)
                     isRequestInProgress = false
                 }
             )
@@ -205,7 +219,7 @@ class IniciarOrdenViewModel() : ViewModel() {
 
 
 
-class ProductosOrdenViewModel() : ViewModel() {
+class ProductosOrdenViewModel() : CargaViewModel() {
 
     private val _resultado = MutableLiveData<Event<ModeloProductoOrdenes>>()
     val resultado: LiveData<Event<ModeloProductoOrdenes>> get() = _resultado
@@ -218,6 +232,7 @@ class ProductosOrdenViewModel() : ViewModel() {
 
     fun productosOrdenRetrofit(idorden: Int) {
         if (isRequestInProgress) return
+        prepararCarga { productosOrdenRetrofit(idorden) }
 
         isRequestInProgress = true
 
@@ -225,7 +240,7 @@ class ProductosOrdenViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().listadoProductosOrden(idorden)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
+            .retry(2, RetrofitBuilder.reintentar)
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -233,6 +248,7 @@ class ProductosOrdenViewModel() : ViewModel() {
                     isRequestInProgress = false
                 },
                 { error ->
+                    marcarError()
                     _isLoading.value = false
                     isRequestInProgress = false
                 }
@@ -247,7 +263,7 @@ class ProductosOrdenViewModel() : ViewModel() {
 
 
 
-class InfoProductoViewModel() : ViewModel() {
+class InfoProductoViewModel() : CargaViewModel() {
 
     private val _resultado = MutableLiveData<Event<ModeloInfoProducto>>()
     val resultado: LiveData<Event<ModeloInfoProducto>> get() = _resultado
@@ -260,6 +276,7 @@ class InfoProductoViewModel() : ViewModel() {
 
     fun infoProductoRetrofit(idproducto: Int) {
         if (isRequestInProgress) return
+        prepararCarga { infoProductoRetrofit(idproducto) }
 
         isRequestInProgress = true
 
@@ -267,7 +284,7 @@ class InfoProductoViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().infoProductoIndividual(idproducto)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
+            .retry(2, RetrofitBuilder.reintentar)
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -275,6 +292,7 @@ class InfoProductoViewModel() : ViewModel() {
                     isRequestInProgress = false
                 },
                 { error ->
+                    marcarError()
                     _isLoading.value = false
                     isRequestInProgress = false
                 }
@@ -288,93 +306,7 @@ class InfoProductoViewModel() : ViewModel() {
 }
 
 
-class OrdenPreparacionBuscarViewModel() : ViewModel() {
-
-    private val _resultado = MutableLiveData<Event<ModeloOrdenesPreparacion>>()
-    val resultado: LiveData<Event<ModeloOrdenesPreparacion>> get() = _resultado
-
-    private val _isLoading = MutableLiveData(false)
-    val isLoading: LiveData<Boolean> get() = _isLoading
-
-    private var disposable: Disposable? = null
-    private var isRequestInProgress = false
-
-    fun prepracionOrdenRetrofit(id: String) {
-        if (isRequestInProgress) return
-
-        isRequestInProgress = true
-
-        _isLoading.value = true
-        disposable = RetrofitBuilder.getApiService().listadoOrdenesPreparacion(id)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .retry()
-            .subscribe(
-                { response ->
-                    _isLoading.value = false
-                    _resultado.value = Event(response)
-                    isRequestInProgress = false
-                },
-                { error ->
-                    _isLoading.value = false
-                    isRequestInProgress = false
-                }
-            )
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        disposable?.dispose() // Limpiar la suscripción
-    }
-}
-
-
-
-
-class FinalizarOrdenViewModel() : ViewModel() {
-
-    private val _resultado = MutableLiveData<Event<ModeloDatosBasicos>>()
-    val resultado: LiveData<Event<ModeloDatosBasicos>> get() = _resultado
-
-    private val _isLoading = MutableLiveData(false)
-    val isLoading: LiveData<Boolean> get() = _isLoading
-
-    private var disposable: Disposable? = null
-    private var isRequestInProgress = false
-
-    fun finalizarOrdenRetrofit(idorden: Int) {
-        if (isRequestInProgress) return
-
-        isRequestInProgress = true
-
-        _isLoading.value = true
-        disposable = RetrofitBuilder.getApiService().finalizarOrden(idorden)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .retry()
-            .subscribe(
-                { response ->
-                    _isLoading.value = false
-                    _resultado.value = Event(response)
-                    isRequestInProgress = false
-                },
-                { error ->
-                    _isLoading.value = false
-                    isRequestInProgress = false
-                }
-            )
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        disposable?.dispose() // Limpiar la suscripción
-    }
-}
-
-
-
-
-class OrdenCompletadasBuscarViewModel() : ViewModel() {
+class OrdenCompletadasBuscarViewModel() : CargaViewModel() {
 
     private val _resultado = MutableLiveData<Event<ModeloOrdenesCompletadas>>()
     val resultado: LiveData<Event<ModeloOrdenesCompletadas>> get() = _resultado
@@ -387,6 +319,7 @@ class OrdenCompletadasBuscarViewModel() : ViewModel() {
 
     fun completadasOrdenRetrofit(id: String) {
         if (isRequestInProgress) return
+        prepararCarga { completadasOrdenRetrofit(id) }
 
         isRequestInProgress = true
 
@@ -394,7 +327,7 @@ class OrdenCompletadasBuscarViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().listadoOrdenesCompletadas(id)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
+            .retry(2, RetrofitBuilder.reintentar)
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -402,6 +335,7 @@ class OrdenCompletadasBuscarViewModel() : ViewModel() {
                     isRequestInProgress = false
                 },
                 { error ->
+                    marcarError()
                     _isLoading.value = false
                     isRequestInProgress = false
                 }
@@ -417,7 +351,7 @@ class OrdenCompletadasBuscarViewModel() : ViewModel() {
 
 
 
-class OrdenCanceladasBuscarViewModel() : ViewModel() {
+class OrdenCanceladasBuscarViewModel() : CargaViewModel() {
 
     private val _resultado = MutableLiveData<Event<ModeloOrdenesCanceladas>>()
     val resultado: LiveData<Event<ModeloOrdenesCanceladas>> get() = _resultado
@@ -430,6 +364,7 @@ class OrdenCanceladasBuscarViewModel() : ViewModel() {
 
     fun canceladasOrdenRetrofit(id: String) {
         if (isRequestInProgress) return
+        prepararCarga { canceladasOrdenRetrofit(id) }
 
         isRequestInProgress = true
 
@@ -437,7 +372,7 @@ class OrdenCanceladasBuscarViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().listadoOrdenesCanceladas(id)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
+            .retry(2, RetrofitBuilder.reintentar)
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -445,6 +380,7 @@ class OrdenCanceladasBuscarViewModel() : ViewModel() {
                     isRequestInProgress = false
                 },
                 { error ->
+                    marcarError()
                     _isLoading.value = false
                     isRequestInProgress = false
                 }
@@ -459,7 +395,7 @@ class OrdenCanceladasBuscarViewModel() : ViewModel() {
 
 
 
-class CategoriasBuscarViewModel() : ViewModel() {
+class CategoriasBuscarViewModel() : CargaViewModel() {
 
     private val _resultado = MutableLiveData<Event<ModeloCategorias>>()
     val resultado: LiveData<Event<ModeloCategorias>> get() = _resultado
@@ -472,6 +408,7 @@ class CategoriasBuscarViewModel() : ViewModel() {
 
     fun categoriasRetrofit(id: String) {
         if (isRequestInProgress) return
+        prepararCarga { categoriasRetrofit(id) }
 
         isRequestInProgress = true
 
@@ -479,7 +416,7 @@ class CategoriasBuscarViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().listadoCategorias(id)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
+            .retry(2, RetrofitBuilder.reintentar)
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -487,6 +424,7 @@ class CategoriasBuscarViewModel() : ViewModel() {
                     isRequestInProgress = false
                 },
                 { error ->
+                    marcarError()
                     _isLoading.value = false
                     isRequestInProgress = false
                 }
@@ -511,6 +449,10 @@ class ActualizarCategoriaViewModel() : ViewModel() {
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> get() = _isLoading
 
+    // Se emite una vez cuando la peticion falla (red o servidor)
+    private val _error = MutableLiveData<Event<Unit>>()
+    val error: LiveData<Event<Unit>> get() = _error
+
     private var disposable: Disposable? = null
     private var isRequestInProgress = false
 
@@ -523,7 +465,6 @@ class ActualizarCategoriaViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().actualizarCategoria(idcategoria, valorcheck)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -532,6 +473,7 @@ class ActualizarCategoriaViewModel() : ViewModel() {
                 },
                 { error ->
                     _isLoading.value = false
+                    _error.value = Event(Unit)
                     isRequestInProgress = false
                 }
             )
@@ -544,7 +486,7 @@ class ActualizarCategoriaViewModel() : ViewModel() {
 }
 
 
-class ListadoProductosCategoriaViewModel() : ViewModel() {
+class ListadoProductosCategoriaViewModel() : CargaViewModel() {
 
     private val _resultado = MutableLiveData<Event<ModeloListaProductoCategorias>>()
     val resultado: LiveData<Event<ModeloListaProductoCategorias>> get() = _resultado
@@ -557,6 +499,7 @@ class ListadoProductosCategoriaViewModel() : ViewModel() {
 
     fun listaProductosCategoriasRetrofit(idcategoria: Int) {
         if (isRequestInProgress) return
+        prepararCarga { listaProductosCategoriasRetrofit(idcategoria) }
 
         isRequestInProgress = true
 
@@ -564,7 +507,7 @@ class ListadoProductosCategoriaViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().listadoProductosCategoria(idcategoria)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
+            .retry(2, RetrofitBuilder.reintentar)
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -572,6 +515,7 @@ class ListadoProductosCategoriaViewModel() : ViewModel() {
                     isRequestInProgress = false
                 },
                 { error ->
+                    marcarError()
                     _isLoading.value = false
                     isRequestInProgress = false
                 }
@@ -595,6 +539,10 @@ class ActualizarProductosViewModel() : ViewModel() {
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> get() = _isLoading
 
+    // Se emite una vez cuando la peticion falla (red o servidor)
+    private val _error = MutableLiveData<Event<Unit>>()
+    val error: LiveData<Event<Unit>> get() = _error
+
     private var disposable: Disposable? = null
     private var isRequestInProgress = false
 
@@ -607,7 +555,6 @@ class ActualizarProductosViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().actualizarEstadoProducto(idproducto, valorcheck)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -616,6 +563,7 @@ class ActualizarProductosViewModel() : ViewModel() {
                 },
                 { error ->
                     _isLoading.value = false
+                    _error.value = Event(Unit)
                     isRequestInProgress = false
                 }
             )
@@ -629,7 +577,7 @@ class ActualizarProductosViewModel() : ViewModel() {
 
 
 
-class HistorialFechasBuscarViewModel() : ViewModel() {
+class HistorialFechasBuscarViewModel() : CargaViewModel() {
 
     private val _resultado = MutableLiveData<Event<ModeloHistorialOrdenes>>()
     val resultado: LiveData<Event<ModeloHistorialOrdenes>> get() = _resultado
@@ -642,6 +590,7 @@ class HistorialFechasBuscarViewModel() : ViewModel() {
 
     fun historialListadonRetrofit(id: String, fecha1: String, fecha2: String) {
         if (isRequestInProgress) return
+        prepararCarga { historialListadonRetrofit(id, fecha1, fecha2) }
 
         isRequestInProgress = true
 
@@ -649,7 +598,7 @@ class HistorialFechasBuscarViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().listadoHistorialOrdenes(id, fecha1, fecha2)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
+            .retry(2, RetrofitBuilder.reintentar)
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -657,6 +606,7 @@ class HistorialFechasBuscarViewModel() : ViewModel() {
                     isRequestInProgress = false
                 },
                 { error ->
+                    marcarError()
                     _isLoading.value = false
                     isRequestInProgress = false
                 }
@@ -671,7 +621,7 @@ class HistorialFechasBuscarViewModel() : ViewModel() {
 
 
 
-class ListadoProductosHistorialOrdenViewModel() : ViewModel() {
+class ListadoProductosHistorialOrdenViewModel() : CargaViewModel() {
 
     private val _resultado = MutableLiveData<Event<ModeloProductoHistorialOrdenes>>()
     val resultado: LiveData<Event<ModeloProductoHistorialOrdenes>> get() = _resultado
@@ -684,6 +634,7 @@ class ListadoProductosHistorialOrdenViewModel() : ViewModel() {
 
     fun listaProductosHistorialRetrofit(idorden: Int) {
         if (isRequestInProgress) return
+        prepararCarga { listaProductosHistorialRetrofit(idorden) }
 
         isRequestInProgress = true
 
@@ -691,7 +642,7 @@ class ListadoProductosHistorialOrdenViewModel() : ViewModel() {
         disposable = RetrofitBuilder.getApiService().listadoProductosHistorialOrden(idorden)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
+            .retry(2, RetrofitBuilder.reintentar)
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -699,6 +650,7 @@ class ListadoProductosHistorialOrdenViewModel() : ViewModel() {
                     isRequestInProgress = false
                 },
                 { error ->
+                    marcarError()
                     _isLoading.value = false
                     isRequestInProgress = false
                 }
@@ -721,19 +673,22 @@ class NotificacionPruebaViewModel() : ViewModel() {
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> get() = _isLoading
 
+    // Se emite una vez cuando la peticion falla (red o servidor)
+    private val _error = MutableLiveData<Event<Unit>>()
+    val error: LiveData<Event<Unit>> get() = _error
+
     private var disposable: Disposable? = null
     private var isRequestInProgress = false
 
-    fun enviarNotificacionRetrofit(id: String, tokenid: String) {
+    fun enviarNotificacionRetrofit(id: String) {
         if (isRequestInProgress) return
 
         isRequestInProgress = true
 
         _isLoading.value = true
-        disposable = RetrofitBuilder.getApiService().notificacionPrueba(id, tokenid)
+        disposable = RetrofitBuilder.getApiService().notificacionPrueba(id)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .retry()
             .subscribe(
                 { response ->
                     _isLoading.value = false
@@ -742,6 +697,7 @@ class NotificacionPruebaViewModel() : ViewModel() {
                 },
                 { error ->
                     _isLoading.value = false
+                    _error.value = Event(Unit)
                     isRequestInProgress = false
                 }
             )

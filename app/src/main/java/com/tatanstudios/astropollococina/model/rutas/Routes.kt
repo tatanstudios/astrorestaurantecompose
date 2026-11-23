@@ -15,16 +15,7 @@ sealed class Routes(val route: String) {
         fun createRoute(idproducto: String) = "infoProductoOrden/$idproducto"
     }
 
-    // LISTADO DE ORDENES EN PREPARACION
-    object VistaListadoOrdenPreparacion: Routes("listadoPreparacion")
-
-
-    // Preparacion orden -> cuando se selecciona un producto y se vera su info
-    object VistaEstadoPreparacionOrden: Routes("ordenEstadoPreparacionOrden/{idorden}") {
-        fun createRoute(idorden: String) = "ordenEstadoPreparacionOrden/$idorden"
-    }
-
-    // LISTADO DE ORDENES COMPLETADAS
+    // LISTADO DE ORDENES INICIADAS HOY
     object VistaListadoOrdenCompletadas: Routes("listadoCompletadas")
 
     // LISTADO DE ORDENES CANCELADAS

@@ -19,7 +19,7 @@
     <string name="onesignal_notification_accent_color">FF00FF00</string>
     <string name="nuevas_ordenes">Nuevas Ordenes</string>
     <string name="orden_en_preparacion">Orden en Preparación</string>
-    <string name="completadas_hoy">Completadas Hoy</string>
+    <string name="completadas_hoy">Iniciadas Hoy</string>
     <string name="canceladas_hoy">Canceladas Hoy</string>
     <string name="categorias">Categorias</string>
     <string name="notificacion">Notificación</string>
@@ -54,7 +54,7 @@
     <string name="notas">Notas</string>
     <string name="finalizar_orden">Finalizar orden</string>
     <string name="ordenes_hoy">Ordenes hoy</string>
-    <string name="no_hay_ordenes_completadas">No hay órdenes completadas</string>
+    <string name="no_hay_ordenes_completadas">No hay órdenes iniciadas hoy</string>
     <string name="no_hay_ordenes_canceladas">No hay órdenes canceladas</string>
     <string name="orden_numeral">Orden #</string>
     <string name="fecha">Fecha</string>
@@ -65,7 +65,7 @@
     <string name="venta">Venta</string>
     <string name="premio">Premio</string>
     <string name="cupon">Cupón</string>
-    <string name="finalizo">Finalizo</string>
+    <string name="finalizo">Inició</string>
     <string name="categoria">Categoría</string>
     <string name="estado">Estado</string>
     <string name="por">Por</string>

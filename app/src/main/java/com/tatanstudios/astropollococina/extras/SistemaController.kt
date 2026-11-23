@@ -16,6 +16,9 @@ class SistemaController : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // sesion de la API (token de Sanctum)
+        SesionApi.iniciar(this)
+
         // Verbose Logging set to help debug issues, remove before releasing your app.
         OneSignal.Debug.logLevel = LogLevel.VERBOSE
 

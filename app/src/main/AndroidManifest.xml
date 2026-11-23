@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".extras.SistemaController"
@@ -34,9 +35,10 @@
             android:name="com.onesignal.NotificationIcon"
             android:resource="@drawable/ic_stat_onesignal_default" />
 
+        <!-- reproduce el sonido de pedido en la app (algunos telefonos ignoran el sonido del canal) -->
         <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBPolKvObH7-GitOpdf7EegyIe6Ol7a1Go" />
+            android:name="com.onesignal.NotificationServiceExtension"
+            android:value="com.tatanstudios.astropollococina.extras.NotificacionServicio" />
 
     </application>
 

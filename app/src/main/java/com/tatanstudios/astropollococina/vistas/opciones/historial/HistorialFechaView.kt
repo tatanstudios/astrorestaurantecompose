@@ -1,161 +1,173 @@
 package com.tatanstudios.astropollococina.vistas.opciones.historial
 
 import android.app.DatePickerDialog
-import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.navigation.NavHostController
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.navOptions
-import com.tatanstudios.astropollococina.R
-import com.tatanstudios.astropollococina.componentes.BarraToolbarColor
+import androidx.navigation.NavHostController
+import com.tatanstudios.astropollococina.componentes.AppColors
+import com.tatanstudios.astropollococina.componentes.BarraSuperior
+import com.tatanstudios.astropollococina.componentes.TarjetaBlanca
 import com.tatanstudios.astropollococina.model.rutas.Routes
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+/** Elegir el rango del historial: atajos de un toque o un rango personalizado. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HistorialFechaScreen(navController: NavHostController) {
     val ctx = LocalContext.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    keyboardController?.hide()
-
-    var fechaDesde by remember { mutableStateOf<LocalDate?>(null) }
-    var fechaHasta by remember { mutableStateOf<LocalDate?>(null) }
-
-
     val hoy = LocalDate.now()
-    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    val formatoVista = DateTimeFormatter.ofPattern("EEE d 'de' MMMM yyyy", Locale("es", "ES"))
+    val formatoApi = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-    val showDatePicker: (LocalDate?, (LocalDate) -> Unit) -> Unit = { initialDate, onDateSelected ->
-        val date = initialDate ?: LocalDate.now()
+    var fechaDesde by remember { mutableStateOf(hoy) }
+    var fechaHasta by remember { mutableStateOf(hoy) }
+    var error by remember { mutableStateOf<String?>(null) }
 
-        val locale = Locale("es", "ES")
-        Locale.setDefault(locale)
+    fun buscar(desde: LocalDate, hasta: LocalDate) {
+        navController.navigate(
+            Routes.VistaHistorialListadoOrden.createRoute(fecha1 = desde.format(formatoApi), fecha2 = hasta.format(formatoApi))
+        ) { launchSingleTop = true }
+    }
 
-        val datePicker = DatePickerDialog(
+    fun elegirFecha(inicial: LocalDate, minima: LocalDate?, alElegir: (LocalDate) -> Unit) {
+        val dialogo = DatePickerDialog(
             ctx,
-            { _, year, month, dayOfMonth ->
-                onDateSelected(LocalDate.of(year, month + 1, dayOfMonth))
-            },
-            date.year,
-            date.monthValue - 1,
-            date.dayOfMonth
+            { _, y, m, d -> alElegir(LocalDate.of(y, m + 1, d)) },
+            inicial.year, inicial.monthValue - 1, inicial.dayOfMonth
         )
-
-        // Bloquear fechas futuras
-        datePicker.datePicker.maxDate = System.currentTimeMillis()
-
-        datePicker.setTitle("Selecciona una fecha")
-        datePicker.show()
+        dialogo.datePicker.maxDate = System.currentTimeMillis()
+        minima?.let { dialogo.datePicker.minDate = it.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() }
+        dialogo.show()
     }
 
     Scaffold(
-        topBar = {
-            BarraToolbarColor(
-                navController,
-                stringResource(R.string.historial),
-                colorResource(R.color.colorRojo),
-            )
-        }
+        containerColor = AppColors.crema,
+        topBar = { BarraSuperior(titulo = "Historial", onAtras = { navController.popBackStack() }) }
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
-                    onClick = { showDatePicker(fechaDesde) { fechaDesde = it } },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = R.color.colorVerde)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Desde: ${fechaDesde?.format(dateFormatter) ?: stringResource(R.string.seleccionar)}")
+            TarjetaBlanca {
+                Text("Ver rápido", fontWeight = FontWeight.SemiBold, color = AppColors.letraPrincipal)
+                Text("Toca un período para ver sus órdenes.", style = MaterialTheme.typography.bodySmall, color = AppColors.grisIcono)
+                Spacer(Modifier.height(4.dp))
+                val atajos = listOf(
+                    "Hoy" to (hoy to hoy),
+                    "Ayer" to (hoy.minusDays(1) to hoy.minusDays(1)),
+                    "Últimos 7 días" to (hoy.minusDays(6) to hoy),
+                    "Este mes" to (hoy.withDayOfMonth(1) to hoy),
+                    "Mes pasado" to (hoy.minusMonths(1).withDayOfMonth(1) to hoy.withDayOfMonth(1).minusDays(1)),
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    atajos.forEach { (texto, rango) ->
+                        Text(
+                            texto,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AppColors.rojo,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(AppColors.rojo.copy(alpha = 0.08f))
+                                .clickable { buscar(rango.first, rango.second) }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        )
+                    }
                 }
+            }
 
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Button(
-                    onClick = { showDatePicker(fechaHasta) { fechaHasta = it } },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = R.color.colorVerde)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Hasta: ${fechaHasta?.format(dateFormatter) ?: stringResource(R.string.seleccionar)}")
+            TarjetaBlanca {
+                Text("Rango personalizado", fontWeight = FontWeight.SemiBold, color = AppColors.letraPrincipal)
+                CampoFecha("Desde", fechaDesde.format(formatoVista)) {
+                    elegirFecha(fechaDesde, null) {
+                        fechaDesde = it
+                        if (fechaHasta.isBefore(it)) fechaHasta = it // mantener el rango válido
+                        error = null
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
+                CampoFecha("Hasta", fechaHasta.format(formatoVista)) {
+                    elegirFecha(fechaHasta, fechaDesde) { fechaHasta = it; error = null }
+                }
+                error?.let { Text(it, color = AppColors.rojoOscuro, style = MaterialTheme.typography.bodySmall) }
+                Spacer(Modifier.height(4.dp))
                 Button(
                     onClick = {
-                        when {
-                            fechaDesde == null || fechaHasta == null -> {
-                                Toast.makeText(ctx, "Selecciona ambas fechas", Toast.LENGTH_SHORT).show()
-                            }
-                            fechaDesde!!.isAfter(fechaHasta) -> {
-                                Toast.makeText(ctx, "La fecha 'Desde' no puede ser mayor que 'Hasta'", Toast.LENGTH_SHORT).show()
-                            }
-                            fechaHasta!!.isAfter(hoy) -> {
-                                Toast.makeText(ctx, "La fecha 'Hasta' no puede ser mayor que hoy", Toast.LENGTH_SHORT).show()
-                            }
-                            else -> {
-
-                                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                                val fechaDesdeFormateada = fechaDesde?.format(formatter) ?: ""
-                                val fechaHastaFormateada = fechaHasta?.format(formatter) ?: ""
-
-                                navController.navigate(
-                                    Routes.VistaHistorialListadoOrden.createRoute(
-                                        fecha1 = fechaDesdeFormateada,
-                                        fecha2 = fechaHastaFormateada,
-                                    ),
-                                    navOptions {
-                                        launchSingleTop = true
-                                    }
-                                )
-
-
-                            }
-                        }
+                        if (fechaDesde.isAfter(fechaHasta)) error = "La fecha \"Desde\" no puede ser mayor que \"Hasta\"."
+                        else buscar(fechaDesde, fechaHasta)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(id = R.color.colorAzul)),
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.rojo, contentColor = Color.White),
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
                 ) {
-                    Text(stringResource(R.string.buscar))
+                    Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Buscar órdenes", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CampoFecha(etiqueta: String, valor: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(AppColors.grisSuave)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Filled.CalendarMonth, contentDescription = null, tint = AppColors.rojo, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(etiqueta, style = MaterialTheme.typography.labelMedium, color = AppColors.grisIcono)
+            Text(valor.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = AppColors.letraPrincipal)
+        }
+        Text("Cambiar", color = AppColors.rojo, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
     }
 }
