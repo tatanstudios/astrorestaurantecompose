@@ -186,7 +186,7 @@ fun LoginScreen(navController: NavHostController, viewModel: LoginViewModel = vi
                     CampoLogin(
                         valor = usuario,
                         onCambio = {
-                            if (it.length <= 20) viewModel.setUsuario(it.replace(" ", ""))
+                            if (it.length <= 20) viewModel.setUsuario(it)
                             errorUsuario = null; errorGeneral = null
                         },
                         etiqueta = "Usuario",

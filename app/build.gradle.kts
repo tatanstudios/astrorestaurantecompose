@@ -12,8 +12,8 @@ android {
         applicationId = "com.tatanstudios.astropollococina"
         minSdk = 27
         targetSdk = 36
-        versionCode = 7
-        versionName = "3.0.0"
+        versionCode = 8
+        versionName = "3.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
