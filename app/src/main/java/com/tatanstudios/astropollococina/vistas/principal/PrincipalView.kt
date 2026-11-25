@@ -225,6 +225,13 @@ fun PrincipalScreen(
                                 }
                             }
                         }
+                        9 -> { // WHATSAPP
+                            navController.navigate(Routes.VistaWhatsApp.route) {
+                                navOptions {
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
                         8 -> {
                             // cerrar sesion
                             showModalCerrarSesion = true

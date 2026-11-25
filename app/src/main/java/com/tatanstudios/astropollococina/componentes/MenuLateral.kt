@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +45,7 @@ import com.tatanstudios.astropollococina.R
 
 /**
  * Contenido del menú lateral. Los ids son los mismos que usa la pantalla principal:
- * 1 nuevas, 3 iniciadas hoy, 4 canceladas hoy, 5 categorías, 6 notificaciones, 7 historial, 8 cerrar sesión.
+ * 1 nuevas, 3 iniciadas hoy, 4 canceladas hoy, 5 categorías, 6 notificaciones, 7 historial, 8 cerrar sesión, 9 WhatsApp.
  */
 @Composable
 fun MenuLateral(
@@ -106,6 +107,7 @@ fun MenuLateral(
 
             Seccion("Ajustes")
             OpcionMenu(Icons.Filled.NotificationsActive, "Notificaciones", AppColors.letraPrincipal, AppColors.grisSuave) { onOpcion(6) }
+            OpcionMenu(Icons.Filled.Sms, "WhatsApp", AppColors.verde, AppColors.verdeFondo) { onOpcion(9) }
         }
 
         HorizontalDivider(color = AppColors.grisSuave)

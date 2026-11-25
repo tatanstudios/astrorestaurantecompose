@@ -195,6 +195,11 @@ fun AppNavigation() {
         // NOTIFICACIONES
         composable(Routes.VistaNotificaciones.route) { NotificacionScreen(navController) }
 
+        // WHATSAPP
+        composable(Routes.VistaWhatsApp.route) {
+            com.tatanstudios.astropollococina.vistas.opciones.whatsapp.WhatsAppScreen(navController)
+        }
+
 
     }
 }

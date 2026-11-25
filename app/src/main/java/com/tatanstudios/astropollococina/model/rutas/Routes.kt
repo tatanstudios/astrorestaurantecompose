@@ -55,6 +55,9 @@ sealed class Routes(val route: String) {
     // NOTIFICACIONES
     object VistaNotificaciones: Routes("notificaciones")
 
+    // WHATSAPP: numero de la sucursal y mensajes disponibles
+    object VistaWhatsApp: Routes("whatsapp")
+
 
 
 

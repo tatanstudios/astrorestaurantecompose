@@ -12,6 +12,7 @@ import com.tatanstudios.astropollococina.model.ordenes.ModeloOrdenesCanceladas
 import com.tatanstudios.astropollococina.model.ordenes.ModeloOrdenesCompletadas
 import com.tatanstudios.astropollococina.model.ordenes.ModeloProductoHistorialOrdenes
 import com.tatanstudios.astropollococina.model.ordenes.ModeloProductoOrdenes
+import com.tatanstudios.astropollococina.model.ordenes.ModeloWhatsApp
 import io.reactivex.rxjava3.core.Single
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
@@ -141,6 +142,18 @@ interface ApiService {
     ): Single<ModeloDatosBasicos>
 
 
+    // WHATSAPP: numero de la sucursal y mensajes disponibles del bolson
+    @POST("restaurante/whatsapp/informacion")
+    @FormUrlEncoded
+    fun informacionWhatsApp(@Field("id") id: String
+    ): Single<ModeloWhatsApp>
+
+    // WHATSAPP: cambiar el numero (vacio = no recibir avisos por WhatsApp)
+    @POST("restaurante/whatsapp/actualizar")
+    @FormUrlEncoded
+    fun actualizarWhatsApp(@Field("id") id: String,
+                           @Field("whatsapp") whatsapp: String
+    ): Single<ModeloWhatsApp>
 
 }
 
