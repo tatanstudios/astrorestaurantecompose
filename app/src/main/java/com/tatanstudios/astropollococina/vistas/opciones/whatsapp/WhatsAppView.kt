@@ -93,7 +93,7 @@ fun WhatsAppScreen(
     LaunchedEffect(info) {
         val i = info ?: return@LaunchedEffect
         if (!numeroCargado) {
-            numero = i.whatsapp.orEmpty()
+            numero = sinCodigoPais(i.whatsapp)
             numeroCargado = true
         }
     }
@@ -102,7 +102,7 @@ fun WhatsAppScreen(
         resultadoGuardar?.getContentIfNotHandled()?.let { r ->
             when (r?.success) {
                 1 -> {
-                    numero = r.whatsapp.orEmpty()
+                    numero = sinCodigoPais(r.whatsapp)
                     errorNumero = null
                     CustomToasty(ctx, if (numero.isBlank()) "Número quitado" else "Número guardado", ToastType.SUCCESS)
                 }
@@ -200,15 +200,17 @@ fun WhatsAppScreen(
                         OutlinedTextField(
                             value = numero,
                             onValueChange = { nuevo ->
-                                numero = nuevo.filter { it.isDigit() || it == '+' || it == ' ' || it == '-' }.take(20)
+                                // el +503 va fijo: solo los 8 digitos
+                                numero = nuevo.filter { it.isDigit() }.take(8)
                                 errorNumero = null
                             },
                             leadingIcon = { Icon(Icons.Filled.Phone, contentDescription = null) },
-                            placeholder = { Text("Ej. 7123 4567") },
+                            prefix = { Text("+503 ", color = AppColors.letraPrincipal, fontWeight = FontWeight.SemiBold) },
+                            placeholder = { Text("71234567") },
                             singleLine = true,
                             isError = errorNumero != null,
                             supportingText = {
-                                Text(errorNumero ?: "8 dígitos, o el número con código de país. Déjalo vacío para no recibir avisos.")
+                                Text(errorNumero ?: "Escribe solo los 8 dígitos. Déjalo vacío para no recibir avisos.")
                             },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             shape = RoundedCornerShape(12.dp),
@@ -222,7 +224,11 @@ fun WhatsAppScreen(
                         Button(
                             onClick = {
                                 teclado?.hide()
-                                viewModel.guardar(idusuario, numero)
+                                if (numero.isNotEmpty() && numero.length != 8) {
+                                    errorNumero = "El número debe tener 8 dígitos."
+                                } else {
+                                    viewModel.guardar(idusuario, numero)
+                                }
                             },
                             enabled = !guardando,
                             shape = RoundedCornerShape(14.dp),
@@ -248,4 +254,10 @@ fun WhatsAppScreen(
             ErrorReintentar(viewModel = viewModel, isLoading = isLoading)
         }
     }
+}
+
+/** El servidor guarda "503XXXXXXXX"; en pantalla se muestran solo los 8 digitos (el +503 va fijo). */
+private fun sinCodigoPais(numero: String?): String {
+    val digitos = numero.orEmpty().filter { it.isDigit() }
+    return if (digitos.length == 11 && digitos.startsWith("503")) digitos.substring(3) else digitos
 }
